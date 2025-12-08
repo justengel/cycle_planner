@@ -21,6 +21,9 @@ class Settings(BaseSettings):
     # GetSongBPM (fallback for audio features)
     getsongbpm_api_key: str | None = None
 
+    # CORS
+    cors_origins: str = "http://localhost:8000"
+
     class Config:
         env_file = ".env"
         extra = "ignore"

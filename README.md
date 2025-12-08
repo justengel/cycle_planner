@@ -68,6 +68,7 @@ Create a `.env` file with the following variables:
 ### App
 - `APP_ENV` - Environment mode (`development` or `production`)
 - `APP_SECRET_KEY` - Secret key for session management (use a random string)
+- `CORS_ORIGINS` - Comma-separated list of allowed origins (e.g., `http://localhost:8000,https://yourdomain.com`)
 
 ### Spotify
 Get these from https://developer.spotify.com/dashboard:
