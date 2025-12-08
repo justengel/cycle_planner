@@ -1,0 +1,671 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Lesson Plan - Cycle Planner{% endblock %}
+
+{% block content %}
+<div id="plan-editor" class="space-y-6">
+    <!-- Header -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-start gap-4">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Theme</label>
+                <input
+                    type="text"
+                    id="plan-theme"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-xl font-bold"
+                    placeholder="Class theme..."
+                >
+            </div>
+            <div class="text-right">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Total Duration</label>
+                <span id="total-duration" class="text-2xl font-bold text-indigo-600">0 min</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Segments -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800">Segments</h2>
+            <button
+                onclick="addSegment()"
+                class="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 text-sm"
+            >
+                + Add Segment
+            </button>
+        </div>
+
+        <div id="segments-container" class="space-y-4">
+            <!-- Segments will be populated by JS -->
+        </div>
+    </div>
+
+    <!-- Notes -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
+        <textarea
+            id="plan-notes"
+            rows="3"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Additional notes for this class..."
+        ></textarea>
+    </div>
+
+    <!-- Actions -->
+    <div class="flex justify-between items-center print:hidden">
+        <div id="back-links">
+            <a href="/" class="text-gray-600 hover:text-gray-800">
+                &larr; Generate New Plan
+            </a>
+        </div>
+        <div class="space-x-3">
+            <button
+                onclick="window.print()"
+                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200"
+            >
+                Print
+            </button>
+            <button
+                onclick="savePlan()"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+            >
+                Save Plan
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Segment Template (hidden) -->
+<template id="segment-template">
+    <div class="segment border rounded-lg p-4 bg-gray-50" data-index="">
+        <div class="flex justify-between items-start mb-3">
+            <div class="flex-1 grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Segment Name</label>
+                    <input type="text" class="segment-name w-full px-2 py-1 border border-gray-300 rounded text-sm" placeholder="e.g., Warm-up">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Duration (sec)</label>
+                    <input type="number" class="segment-duration w-full px-2 py-1 border border-gray-300 rounded text-sm" min="10" step="10" placeholder="180">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Intensity</label>
+                    <select class="segment-intensity w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                        <option value="low">Low</option>
+                        <option value="medium">Medium</option>
+                        <option value="high">High</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-gray-500 mb-1">Position</label>
+                    <select class="segment-position w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                        <option value="seated">Seated</option>
+                        <option value="standing">Standing</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
+            <div class="md:col-span-2">
+                <label class="block text-xs font-medium text-gray-500 mb-1">Song</label>
+                <div class="flex gap-1">
+                    <input type="text" class="segment-song flex-1 px-2 py-1 border border-gray-300 rounded text-sm" placeholder="Song name - Artist">
+                    <input type="hidden" class="segment-spotify-uri">
+                    <input type="hidden" class="segment-song-duration-ms" value="0">
+                    <button type="button" onclick="openSpotifySearch(this)" class="px-2 py-1 bg-green-500 text-white rounded text-xs hover:bg-green-600" title="Search Spotify">
+                        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>
+                    </button>
+                </div>
+                <span class="segment-tempo-display text-xs text-indigo-500 mt-1 inline-block hidden"></span>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Start (sec)</label>
+                <input type="number" class="segment-song-start w-full px-2 py-1 border border-gray-300 rounded text-sm" min="0" step="1" placeholder="0" title="Start song at this second">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">End (sec)</label>
+                <input type="number" class="segment-song-end w-full px-2 py-1 border border-gray-300 rounded text-sm" min="0" step="1" placeholder="" title="Stop song at this second (blank = segment end)">
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">BPM Range</label>
+                <input type="text" class="segment-bpm w-full px-2 py-1 border border-gray-300 rounded text-sm" placeholder="e.g., 90-100">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">&nbsp;</label>
+                <label class="flex items-center gap-2 text-sm font-medium text-gray-600 cursor-pointer h-[30px]">
+                    <input type="checkbox" class="segment-fade-out w-5 h-5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+                    Fade out song
+                </label>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-xs font-medium text-gray-500 mb-1">Coaching Cues</label>
+            <textarea class="segment-description w-full px-2 py-1 border border-gray-300 rounded text-sm" rows="2" placeholder="Instructions and motivation..."></textarea>
+        </div>
+
+        <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
+            <span class="segment-time-marker"></span>
+            <div class="space-x-3 flex items-center">
+                <button onclick="moveSegment(this, -1)" class="hover:text-gray-600">&uarr; Move Up</button>
+                <button onclick="moveSegment(this, 1)" class="hover:text-gray-600">&darr; Move Down</button>
+                <button onclick="removeSegment(this)" class="px-2 py-0.5 bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 rounded font-medium" title="Remove segment">&times; Remove</button>
+            </div>
+        </div>
+    </div>
+</template>
+
+<!-- Print View -->
+<div id="print-view" class="hidden print:block">
+    <div id="print-content"></div>
+</div>
+
+<!-- Spotify Search Modal -->
+<div id="spotify-search-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center">
+    <div class="bg-white rounded-lg shadow-xl w-full max-w-lg mx-4">
+        <div class="p-4 border-b flex justify-between items-center">
+            <h3 class="text-lg font-semibold">Search Spotify</h3>
+            <button onclick="closeSpotifySearch()" class="text-gray-500 hover:text-gray-700 text-2xl">&times;</button>
+        </div>
+        <div class="p-4">
+            <input
+                type="text"
+                id="spotify-search-input"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500"
+                placeholder="Search for a song..."
+                onkeyup="debounceSearch(event)"
+            >
+            <div id="spotify-search-results" class="mt-4 max-h-64 overflow-y-auto">
+                <p class="text-gray-500 text-center py-4">Enter a song name to search</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let plan = null;
+    let currentPlanId = null;  // Track if editing existing plan
+    const container = document.getElementById('segments-container');
+    const template = document.getElementById('segment-template');
+
+    // Load plan from sessionStorage or URL
+    function loadPlan() {
+        const pathParts = window.location.pathname.split('/').filter(p => p);
+        // URL is /plan/{id}/edit or /plan/new
+        const planIndex = pathParts.indexOf('plan');
+        const planId = planIndex >= 0 ? pathParts[planIndex + 1] : null;
+
+        if (planId && planId !== 'new') {
+            // Editing existing saved plan
+            currentPlanId = planId;
+            fetchPlan(planId);
+        } else {
+            // New plan - check sessionStorage
+            const stored = sessionStorage.getItem('generatedPlan');
+            if (stored) {
+                plan = JSON.parse(stored);
+                sessionStorage.removeItem('generatedPlan');
+                renderPlan();
+            } else {
+                // No plan, redirect to generator
+                window.location.href = '/';
+            }
+        }
+    }
+
+    async function fetchPlan(id) {
+        try {
+            const response = await fetch(`/api/plans/${id}`, {
+                headers: { 'Authorization': 'Bearer placeholder' }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                plan = data.plan_json;
+                renderPlan();
+            } else {
+                window.location.href = '/';
+            }
+        } catch (error) {
+            console.error('Failed to fetch plan:', error);
+            window.location.href = '/';
+        }
+    }
+
+    function renderPlan() {
+        document.getElementById('plan-theme').value = plan.theme || '';
+        document.getElementById('plan-notes').value = plan.notes || '';
+
+        // Update back link if editing existing plan
+        if (currentPlanId) {
+            document.getElementById('back-links').innerHTML = `
+                <a href="/plan/${currentPlanId}" class="text-gray-600 hover:text-gray-800">
+                    &larr; Back to View
+                </a>
+                <span class="mx-2 text-gray-300">|</span>
+                <a href="/" class="text-gray-600 hover:text-gray-800">New Plan</a>
+            `;
+        }
+
+        container.innerHTML = '';
+        plan.segments.forEach((segment, index) => {
+            addSegmentElement(segment, index);
+        });
+
+        updateTotalDuration();
+        updateTimeMarkers();
+
+        // Fetch audio features for all segments with Spotify URIs
+        loadAllAudioFeatures();
+    }
+
+    async function loadAllAudioFeatures() {
+        const segments = container.querySelectorAll('.segment');
+        segments.forEach((segmentEl) => {
+            const spotifyUri = segmentEl.querySelector('.segment-spotify-uri').value;
+            if (spotifyUri) {
+                fetchAudioFeatures(segmentEl, spotifyUri);
+            }
+        });
+    }
+
+    function addSegmentElement(segment = null, index = null) {
+        const clone = template.content.cloneNode(true);
+        const el = clone.querySelector('.segment');
+
+        if (segment) {
+            el.querySelector('.segment-name').value = segment.name || '';
+            el.querySelector('.segment-duration').value = segment.duration_seconds || 180;
+            el.querySelector('.segment-intensity').value = segment.intensity || 'medium';
+            el.querySelector('.segment-position').value = segment.position || 'seated';
+            el.querySelector('.segment-song').value = segment.song || '';
+            el.querySelector('.segment-spotify-uri').value = segment.spotify_uri || '';
+            el.querySelector('.segment-song-start').value = segment.song_start_seconds || 0;
+            el.querySelector('.segment-song-end').value = segment.song_end_seconds || '';
+            el.querySelector('.segment-fade-out').checked = segment.fade_out === true;
+            el.querySelector('.segment-bpm').value = segment.suggested_bpm_range || '';
+            el.querySelector('.segment-description').value = segment.description || '';
+            // Store song duration if we have one (duration_seconds * 1000 as approximation if from Spotify)
+            if (segment.spotify_uri && segment.duration_seconds) {
+                el.querySelector('.segment-song-duration-ms').value = segment.duration_seconds * 1000;
+            }
+        }
+
+        // Add change listeners
+        el.querySelectorAll('input, select, textarea').forEach(input => {
+            input.addEventListener('change', () => {
+                updateTotalDuration();
+                updateTimeMarkers();
+            });
+        });
+
+        // Add specific listeners for start/end time to recalculate duration
+        el.querySelector('.segment-song-start').addEventListener('change', () => {
+            recalculateSegmentDuration(el);
+        });
+        el.querySelector('.segment-song-end').addEventListener('change', () => {
+            recalculateSegmentDuration(el);
+        });
+
+        container.appendChild(clone);
+    }
+
+    function addSegment() {
+        addSegmentElement({
+            name: 'New Segment',
+            duration_seconds: 180,
+            intensity: 'medium',
+            position: 'seated',
+            song: '',
+            suggested_bpm_range: '100-120',
+            description: ''
+        });
+        updateTotalDuration();
+        updateTimeMarkers();
+    }
+
+    function removeSegment(btn) {
+        const segment = btn.closest('.segment');
+        segment.remove();
+        updateTotalDuration();
+        updateTimeMarkers();
+    }
+
+    function moveSegment(btn, direction) {
+        const segment = btn.closest('.segment');
+        const segments = Array.from(container.children);
+        const index = segments.indexOf(segment);
+        const newIndex = index + direction;
+
+        if (newIndex >= 0 && newIndex < segments.length) {
+            if (direction === -1) {
+                container.insertBefore(segment, segments[newIndex]);
+            } else {
+                container.insertBefore(segments[newIndex], segment);
+            }
+            updateTimeMarkers();
+        }
+    }
+
+    function updateTotalDuration() {
+        const segments = container.querySelectorAll('.segment');
+        let total = 0;
+        segments.forEach(seg => {
+            total += parseInt(seg.querySelector('.segment-duration').value) || 0;
+        });
+        const minutes = Math.floor(total / 60);
+        document.getElementById('total-duration').textContent = `${minutes} min`;
+    }
+
+    function updateTimeMarkers() {
+        const segments = container.querySelectorAll('.segment');
+        let runningTime = 0;
+        segments.forEach((seg, i) => {
+            const marker = seg.querySelector('.segment-time-marker');
+            const duration = parseInt(seg.querySelector('.segment-duration').value) || 0;
+            marker.textContent = `${formatTime(runningTime)} - ${formatTime(runningTime + duration)}`;
+            runningTime += duration;
+        });
+    }
+
+    function formatTime(totalSeconds) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function collectPlanData() {
+        const segments = [];
+        container.querySelectorAll('.segment').forEach(seg => {
+            const songEnd = seg.querySelector('.segment-song-end').value;
+            segments.push({
+                name: seg.querySelector('.segment-name').value,
+                duration_seconds: parseInt(seg.querySelector('.segment-duration').value) || 0,
+                intensity: seg.querySelector('.segment-intensity').value,
+                position: seg.querySelector('.segment-position').value,
+                song: seg.querySelector('.segment-song').value,
+                spotify_uri: seg.querySelector('.segment-spotify-uri').value,
+                song_start_seconds: parseInt(seg.querySelector('.segment-song-start').value) || 0,
+                song_end_seconds: songEnd ? parseInt(songEnd) : null,
+                fade_out: seg.querySelector('.segment-fade-out').checked,
+                suggested_bpm_range: seg.querySelector('.segment-bpm').value,
+                description: seg.querySelector('.segment-description').value,
+            });
+        });
+
+        let totalSeconds = 0;
+        segments.forEach(s => totalSeconds += s.duration_seconds);
+
+        return {
+            theme: document.getElementById('plan-theme').value,
+            total_duration_minutes: Math.ceil(totalSeconds / 60),
+            segments: segments,
+            notes: document.getElementById('plan-notes').value || null
+        };
+    }
+
+    async function savePlan() {
+        const planData = collectPlanData();
+
+        try {
+            // Use PUT for existing plans, POST for new
+            const url = currentPlanId ? `/api/plans/${currentPlanId}` : '/api/plans';
+            const method = currentPlanId ? 'PUT' : 'POST';
+
+            const response = await fetch(url, {
+                method: method,
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer placeholder'
+                },
+                body: JSON.stringify({ plan: planData })
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                const planId = data.id || currentPlanId;
+                showToast('Plan saved successfully!');
+                setTimeout(() => {
+                    window.location.href = `/plan/${planId}`;
+                }, 500);
+            } else {
+                throw new Error('Failed to save plan');
+            }
+        } catch (error) {
+            showToast('Error saving plan: ' + error.message, 'error');
+        }
+    }
+
+    // Auto-refresh Spotify token and retry request
+    async function spotifyFetch(url, options = {}, retried = false) {
+        const response = await fetch(url, options);
+
+        if (response.status === 401 && !retried) {
+            const refreshResponse = await fetch('/api/spotify/refresh', { method: 'POST' });
+            if (refreshResponse.ok) {
+                return spotifyFetch(url, options, true);
+            }
+        }
+
+        return response;
+    }
+
+    // Fetch audio features from Spotify for a segment
+    async function fetchAudioFeatures(segmentEl, spotifyUri) {
+        // Extract track ID from URI (spotify:track:TRACK_ID)
+        const trackId = spotifyUri.split(':').pop();
+        if (!trackId) return;
+
+        try {
+            const response = await spotifyFetch(`/api/spotify/audio-features/${trackId}`);
+            if (!response.ok) return;
+
+            const data = await response.json();
+            const tempoDisplay = segmentEl.querySelector('.segment-tempo-display');
+            if (tempoDisplay && (data.tempo || data.energy)) {
+                const parts = [];
+                if (data.tempo) parts.push(`${data.tempo} BPM`);
+                if (data.energy) parts.push(`Energy ${data.energy}%`);
+                if (data.valence) parts.push(`Mood ${data.valence}%`);
+                if (data.danceability) parts.push(`Dance ${data.danceability}%`);
+                tempoDisplay.textContent = parts.join(' · ');
+                tempoDisplay.classList.remove('hidden');
+            }
+        } catch (error) {
+            // Silently fail - audio features unavailable
+        }
+    }
+
+    // Spotify Search
+    let currentSegmentForSearch = null;
+    let searchTimeout = null;
+
+    function openSpotifySearch(btn) {
+        currentSegmentForSearch = btn.closest('.segment');
+        const modal = document.getElementById('spotify-search-modal');
+        const input = document.getElementById('spotify-search-input');
+        const results = document.getElementById('spotify-search-results');
+
+        // Pre-fill with current song name
+        const currentSong = currentSegmentForSearch.querySelector('.segment-song').value;
+        input.value = currentSong;
+        results.innerHTML = '<p class="text-gray-500 text-center py-4">Enter a song name to search</p>';
+
+        modal.classList.remove('hidden');
+        input.focus();
+
+        if (currentSong) {
+            searchSpotify(currentSong);
+        }
+    }
+
+    function closeSpotifySearch() {
+        document.getElementById('spotify-search-modal').classList.add('hidden');
+        currentSegmentForSearch = null;
+    }
+
+    function debounceSearch(event) {
+        clearTimeout(searchTimeout);
+        const query = event.target.value.trim();
+
+        if (query.length < 2) {
+            document.getElementById('spotify-search-results').innerHTML =
+                '<p class="text-gray-500 text-center py-4">Enter a song name to search</p>';
+            return;
+        }
+
+        searchTimeout = setTimeout(() => searchSpotify(query), 300);
+    }
+
+    async function searchSpotify(query) {
+        const results = document.getElementById('spotify-search-results');
+        results.innerHTML = '<p class="text-gray-500 text-center py-4">Searching...</p>';
+
+        try {
+            const response = await spotifyFetch(`/api/spotify/search?q=${encodeURIComponent(query)}`);
+
+            if (response.status === 401) {
+                results.innerHTML = `
+                    <div class="text-center py-4">
+                        <p class="text-gray-600 mb-2">Connect Spotify to search songs</p>
+                        <a href="/api/spotify/login" class="inline-block bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">
+                            Connect Spotify
+                        </a>
+                    </div>
+                `;
+                return;
+            }
+
+            const data = await response.json();
+
+            if (data.tracks.length === 0) {
+                results.innerHTML = '<p class="text-gray-500 text-center py-4">No songs found</p>';
+                return;
+            }
+
+            results.innerHTML = data.tracks.map(track => `
+                <div class="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer" onclick="selectTrack('${track.uri}', '${escapeAttr(track.name)}', '${escapeAttr(track.artist)}', ${track.duration_ms}, ${track.tempo || 0}, ${track.energy || 0}, ${track.valence || 0}, ${track.danceability || 0})">
+                    ${track.image ? `<img src="${track.image}" class="w-10 h-10 rounded" alt="">` : '<div class="w-10 h-10 bg-gray-200 rounded"></div>'}
+                    <div class="flex-1 min-w-0">
+                        <p class="font-medium text-sm truncate">${escapeHtml(track.name)}</p>
+                        <p class="text-xs text-gray-500 truncate">${escapeHtml(track.artist)}</p>
+                    </div>
+                    <div class="text-right text-xs">
+                        <div class="text-gray-400">${formatDuration(track.duration_ms)}${track.tempo ? ` &middot; ${track.tempo} BPM` : ''}</div>
+                        ${track.energy ? `<div class="text-gray-500">Energy ${track.energy}% &middot; Mood ${track.valence}%</div>` : ''}
+                    </div>
+                </div>
+            `).join('');
+
+        } catch (error) {
+            results.innerHTML = '<p class="text-red-500 text-center py-4">Search failed</p>';
+        }
+    }
+
+    function selectTrack(uri, name, artist, durationMs, tempo, energy, valence, danceability) {
+        if (!currentSegmentForSearch) return;
+
+        currentSegmentForSearch.querySelector('.segment-song').value = `${name} - ${artist}`;
+        currentSegmentForSearch.querySelector('.segment-spotify-uri').value = uri;
+        currentSegmentForSearch.querySelector('.segment-song-duration-ms').value = durationMs || 0;
+
+        // Update segment duration to match song duration
+        if (durationMs) {
+            const durationSeconds = Math.floor(durationMs / 1000);
+            currentSegmentForSearch.querySelector('.segment-duration').value = durationSeconds;
+            // Clear start/end times when selecting new song
+            currentSegmentForSearch.querySelector('.segment-song-start').value = 0;
+            currentSegmentForSearch.querySelector('.segment-song-end').value = '';
+            updateTotalDuration();
+            updateTimeMarkers();
+        }
+
+        // Update audio features display
+        const tempoDisplay = currentSegmentForSearch.querySelector('.segment-tempo-display');
+        if (tempoDisplay) {
+            if (tempo || energy) {
+                const parts = [];
+                if (tempo) parts.push(`${tempo} BPM`);
+                if (energy) parts.push(`Energy ${energy}%`);
+                if (valence) parts.push(`Mood ${valence}%`);
+                if (danceability) parts.push(`Dance ${danceability}%`);
+                tempoDisplay.textContent = parts.join(' · ');
+                tempoDisplay.classList.remove('hidden');
+            } else {
+                tempoDisplay.textContent = '';
+                tempoDisplay.classList.add('hidden');
+            }
+        }
+
+        closeSpotifySearch();
+    }
+
+    function recalculateSegmentDuration(segmentEl) {
+        const songDurationMs = parseInt(segmentEl.querySelector('.segment-song-duration-ms').value) || 0;
+        if (!songDurationMs) return; // No song selected, don't auto-calculate
+
+        const songDurationSec = Math.floor(songDurationMs / 1000);
+        const startTime = parseInt(segmentEl.querySelector('.segment-song-start').value) || 0;
+        const endTimeInput = segmentEl.querySelector('.segment-song-end').value;
+        const endTime = endTimeInput ? parseInt(endTimeInput) : songDurationSec;
+
+        // Validate start/end times
+        const validStart = Math.max(0, Math.min(startTime, songDurationSec));
+        const validEnd = Math.max(validStart, Math.min(endTime, songDurationSec));
+
+        // Update the inputs if they were invalid
+        segmentEl.querySelector('.segment-song-start').value = validStart;
+        if (endTimeInput) {
+            segmentEl.querySelector('.segment-song-end').value = validEnd;
+        }
+
+        // Calculate and set duration
+        const duration = validEnd - validStart;
+        segmentEl.querySelector('.segment-duration').value = duration;
+
+        updateTotalDuration();
+        updateTimeMarkers();
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function escapeAttr(text) {
+        if (!text) return '';
+        return text.replace(/'/g, "\\'").replace(/"/g, '\\"');
+    }
+
+    function formatDuration(ms) {
+        const minutes = Math.floor(ms / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    // Close modal on escape key
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') closeSpotifySearch();
+    });
+
+    // Initialize
+    loadPlan();
+</script>
+
+<style>
+    @media print {
+        #plan-editor {
+            display: none;
+        }
+        #print-view {
+            display: block !important;
+        }
+    }
+</style>
+{% endblock %}

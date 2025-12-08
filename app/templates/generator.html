@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Lesson Plan - Cycle Planner{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-2xl font-bold text-gray-800 mb-6">Create Lesson Plan</h2>
+
+        <form id="generate-form" class="space-y-6">
+            <div>
+                <label for="theme" class="block text-sm font-medium text-gray-700 mb-2">
+                    Theme / Description
+                </label>
+                <textarea
+                    id="theme"
+                    name="theme"
+                    rows="3"
+                    class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    placeholder="e.g., 80s rock power ride, hill climb challenge, high energy pop hits, recovery and endurance..."
+                    required
+                ></textarea>
+            </div>
+
+            <div>
+                <label for="duration" class="block text-sm font-medium text-gray-700 mb-2">
+                    Duration: <span id="duration-display">50</span> minutes
+                </label>
+                <input
+                    type="range"
+                    id="duration"
+                    name="duration_minutes"
+                    min="20"
+                    max="90"
+                    value="50"
+                    class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                >
+                <div class="flex justify-between text-xs text-gray-500 mt-1">
+                    <span>20 min</span>
+                    <span>90 min</span>
+                </div>
+            </div>
+
+            <button
+                type="submit"
+                id="generate-btn"
+                class="w-full bg-indigo-600 text-white py-3 px-4 rounded-md hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 font-medium"
+            >
+                Generate with AI
+            </button>
+        </form>
+
+        <div class="mt-4 text-center">
+            <span class="text-gray-400">or</span>
+        </div>
+
+        <button
+            onclick="createBlankPlan()"
+            class="mt-4 w-full bg-gray-100 text-gray-700 py-3 px-4 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 font-medium"
+        >
+            Create Blank Plan
+        </button>
+
+        <div id="loading" class="hidden mt-6 text-center">
+            <div class="loader mx-auto mb-2"></div>
+            <p class="text-gray-600">Generating your lesson plan...</p>
+            <p class="text-gray-400 text-sm mt-1">This may take 10-20 seconds</p>
+        </div>
+
+        <div id="error" class="hidden mt-6 p-4 bg-red-100 text-red-700 rounded-md"></div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const durationSlider = document.getElementById('duration');
+    const durationDisplay = document.getElementById('duration-display');
+    const form = document.getElementById('generate-form');
+    const loadingDiv = document.getElementById('loading');
+    const errorDiv = document.getElementById('error');
+    const generateBtn = document.getElementById('generate-btn');
+
+    // Check auth on page load
+    async function checkAuth() {
+        const response = await fetch('/api/auth/me');
+        const data = await response.json();
+        if (!data.authenticated) {
+            window.location.href = '/login';
+        }
+    }
+    checkAuth();
+
+    durationSlider.addEventListener('input', (e) => {
+        durationDisplay.textContent = e.target.value;
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const theme = document.getElementById('theme').value;
+        const duration = parseInt(durationSlider.value);
+
+        // Show loading state
+        loadingDiv.classList.remove('hidden');
+        errorDiv.classList.add('hidden');
+        generateBtn.disabled = true;
+        generateBtn.textContent = 'Generating...';
+
+        try {
+            const response = await fetch('/api/generate', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    theme: theme,
+                    duration_minutes: duration
+                })
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                throw new Error(data.detail || 'Failed to generate lesson plan');
+            }
+
+            const data = await response.json();
+
+            // Redirect to saved plan if ID returned, otherwise use sessionStorage
+            if (data.id) {
+                window.location.href = `/plan/${data.id}`;
+            } else {
+                sessionStorage.setItem('generatedPlan', JSON.stringify(data.plan));
+                window.location.href = '/plan/new';
+            }
+
+        } catch (error) {
+            errorDiv.textContent = error.message;
+            errorDiv.classList.remove('hidden');
+            loadingDiv.classList.add('hidden');
+            generateBtn.disabled = false;
+            generateBtn.textContent = 'Generate with AI';
+        }
+    });
+
+    function createBlankPlan() {
+        const theme = document.getElementById('theme').value || 'New Lesson Plan';
+        const duration = parseInt(durationSlider.value);
+
+        const blankPlan = {
+            theme: theme,
+            total_duration_minutes: duration,
+            segments: [
+                {
+                    name: 'Warm-up',
+                    duration_seconds: 300,
+                    intensity: 'low',
+                    position: 'seated',
+                    description: '',
+                    suggested_bpm_range: '80-100',
+                    song: ''
+                },
+                {
+                    name: 'Main Set',
+                    duration_seconds: 600,
+                    intensity: 'medium',
+                    position: 'seated',
+                    description: '',
+                    suggested_bpm_range: '100-120',
+                    song: ''
+                },
+                {
+                    name: 'Cool-down',
+                    duration_seconds: 300,
+                    intensity: 'low',
+                    position: 'seated',
+                    description: '',
+                    suggested_bpm_range: '80-100',
+                    song: ''
+                }
+            ],
+            notes: null
+        };
+
+        sessionStorage.setItem('generatedPlan', JSON.stringify(blankPlan));
+        window.location.href = '/plan/new';
+    }
+</script>
+{% endblock %}

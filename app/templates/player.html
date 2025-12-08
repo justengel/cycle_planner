@@ -1,0 +1,705 @@
+{% extends "base.html" %}
+
+{% block title %}Play Class - Cycle Planner{% endblock %}
+
+{% block content %}
+<div id="player-container" class="max-w-4xl mx-auto">
+    <!-- Loading State -->
+    <div id="loading-state" class="text-center py-12">
+        <div class="loader mx-auto mb-4"></div>
+        <p class="text-gray-600">Loading class...</p>
+    </div>
+
+    <!-- Player UI (hidden until loaded) -->
+    <div id="player-ui" class="hidden space-y-6">
+        <!-- Header -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-between items-center">
+                <div>
+                    <h1 id="class-theme" class="text-2xl font-bold text-gray-800"></h1>
+                    <p id="class-duration" class="text-gray-600"></p>
+                </div>
+                <div class="space-x-3">
+                    <a id="back-link" href="#" class="text-gray-600 hover:text-gray-800">Back to Plan</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Timer Display -->
+        <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-lg shadow-lg p-8 text-white text-center">
+            <div id="segment-name" class="text-2xl font-medium mb-2 opacity-90"></div>
+            <div id="segment-timer" class="text-8xl font-bold font-mono mb-4">0:00</div>
+            <div id="segment-progress" class="w-full bg-white bg-opacity-30 rounded-full h-3 mb-4 cursor-pointer" onclick="seekToPosition(event)" title="Click to seek">
+                <div id="segment-progress-bar" class="bg-white rounded-full h-3 transition-all duration-1000 pointer-events-none" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-center items-center gap-4 mb-4">
+                <span id="segment-intensity" class="px-3 py-1 rounded-full text-sm bg-white bg-opacity-20"></span>
+                <span id="segment-position" class="px-3 py-1 rounded-full text-sm bg-white bg-opacity-20"></span>
+                <span id="segment-bpm" class="px-3 py-1 rounded-full text-sm bg-white bg-opacity-20"></span>
+            </div>
+            <div id="segment-cues" class="text-lg opacity-90 max-w-2xl mx-auto"></div>
+        </div>
+
+        <!-- Now Playing -->
+        <div id="now-playing" class="bg-white rounded-lg shadow-md p-4 hidden">
+            <div class="flex items-center gap-4">
+                <div id="track-image" class="w-16 h-16 bg-gray-200 rounded"></div>
+                <div class="flex-1">
+                    <p id="track-name" class="font-semibold text-gray-800"></p>
+                    <p id="track-artist" class="text-sm text-gray-600"></p>
+                </div>
+                <div id="spotify-logo" class="text-green-500">
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Controls -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <div class="flex justify-center items-center gap-4">
+                <button onclick="previousSegment()" class="p-3 rounded-full hover:bg-gray-100" title="Previous Segment">
+                    <svg class="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/>
+                    </svg>
+                </button>
+
+                <button onclick="skipTime(-10)" class="p-2 rounded-full hover:bg-gray-100" title="Rewind 10 seconds">
+                    <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.333 4z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12a8 8 0 018-8v4l-4-4 4-4v4a8 8 0 11-8 8"/>
+                    </svg>
+                    <span class="text-xs text-gray-600">-10s</span>
+                </button>
+
+                <button id="play-pause-btn" onclick="togglePlayPause()" class="p-4 bg-indigo-600 rounded-full hover:bg-indigo-700 text-white">
+                    <svg id="play-icon" class="w-10 h-10" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <svg id="pause-icon" class="w-10 h-10 hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </button>
+
+                <button onclick="skipTime(10)" class="p-2 rounded-full hover:bg-gray-100" title="Forward 10 seconds">
+                    <svg class="w-6 h-6 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4z"/>
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 12a8 8 0 01-8 8v-4l4 4-4 4v-4a8 8 0 118-8"/>
+                    </svg>
+                    <span class="text-xs text-gray-600">+10s</span>
+                </button>
+
+                <button onclick="nextSegment()" class="p-3 rounded-full hover:bg-gray-100" title="Next Segment">
+                    <svg class="w-8 h-8 text-gray-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Volume Control -->
+            <div class="flex items-center justify-center gap-3 mt-4">
+                <svg class="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                </svg>
+                <input type="range" id="volume-slider" min="0" max="100" value="70" class="w-32" onchange="setVolume(this.value)">
+            </div>
+        </div>
+
+        <!-- All Segments -->
+        <div class="bg-white rounded-lg shadow-md p-6">
+            <h3 class="font-semibold text-gray-800 mb-3">Segments</h3>
+            <div id="all-segments" class="space-y-2"></div>
+        </div>
+    </div>
+
+    <!-- Spotify Not Connected -->
+    <div id="spotify-required" class="hidden text-center py-12">
+        <div class="bg-white rounded-lg shadow-md p-8 max-w-md mx-auto">
+            <svg class="mx-auto h-16 w-16 text-green-500 mb-4" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+            </svg>
+            <h2 class="text-xl font-bold text-gray-800 mb-2">Spotify Premium Required</h2>
+            <p class="text-gray-600 mb-6">Connect your Spotify Premium account to play music during your class.</p>
+            <a href="/api/spotify/login" class="inline-block bg-green-500 text-white px-6 py-3 rounded-full hover:bg-green-600 font-medium">
+                Connect Spotify
+            </a>
+            <p class="mt-4 text-sm text-gray-500">
+                Or <a id="timer-only-link" href="#" class="text-indigo-600 hover:underline" onclick="startTimerOnly()">use timer only</a> (no music)
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://sdk.scdn.co/spotify-player.js"></script>
+<script>
+    let plan = null;
+    let planId = null;
+    let currentSegmentIndex = 0;
+    let segmentTimeRemaining = 0;
+    let isPlaying = false;
+    let timerInterval = null;
+    let spotifyPlayer = null;
+    let spotifyDeviceId = null;
+    let spotifyAccessToken = null;
+    let timerOnlyMode = false;
+    let currentVolume = 0.7;
+    let fadeInterval = null;
+    let songElapsedTime = 0;  // Track song position in seconds
+    let currentSongEndTime = null;  // When to stop the song (in song seconds)
+    let currentFadeOut = false;  // Whether to fade out
+
+    // Auto-refresh Spotify token
+    async function refreshSpotifyToken() {
+        try {
+            const response = await fetch('/api/spotify/refresh', { method: 'POST' });
+            if (response.ok) {
+                const data = await response.json();
+                spotifyAccessToken = data.access_token;
+                return true;
+            }
+        } catch (error) {
+            console.error('Failed to refresh token:', error);
+        }
+        return false;
+    }
+
+    // Spotify API fetch with auto-refresh
+    async function spotifyApiFetch(url, options = {}, retried = false) {
+        options.headers = {
+            ...options.headers,
+            'Authorization': `Bearer ${spotifyAccessToken}`,
+            'Content-Type': 'application/json'
+        };
+
+        const response = await fetch(url, options);
+
+        if (response.status === 401 && !retried) {
+            console.log('Spotify token expired, refreshing...');
+            const refreshed = await refreshSpotifyToken();
+            if (refreshed) {
+                // Update auth header with new token
+                options.headers['Authorization'] = `Bearer ${spotifyAccessToken}`;
+                return spotifyApiFetch(url, options, true);
+            }
+        }
+
+        return response;
+    }
+
+    // Initialize
+    async function init() {
+        planId = window.location.pathname.split('/').pop();
+        document.getElementById('back-link').href = `/plan/${planId}`;
+
+        // Load plan
+        try {
+            const response = await fetch(`/api/plans/${planId}`, {
+                headers: { 'Authorization': 'Bearer placeholder' }
+            });
+            if (!response.ok) throw new Error('Plan not found');
+
+            const data = await response.json();
+            plan = data.plan_json;
+
+            document.getElementById('class-theme').textContent = plan.theme;
+            document.getElementById('class-duration').textContent = `${plan.total_duration_minutes} minutes`;
+
+            // Check Spotify connection
+            const tokenResponse = await fetch('/api/spotify/token');
+            const tokenData = await tokenResponse.json();
+
+            if (tokenData.connected) {
+                spotifyAccessToken = tokenData.access_token;
+                initSpotifyPlayer();
+
+                // Timeout - if Spotify doesn't connect in 10 seconds, offer timer-only mode
+                setTimeout(() => {
+                    if (!spotifyDeviceId) {
+                        document.getElementById('loading-state').innerHTML = `
+                            <div class="text-center">
+                                <p class="text-gray-600 mb-4">Spotify player is taking too long to connect.</p>
+                                <p class="text-sm text-gray-500 mb-4">Make sure you have Spotify Premium and the Spotify app is open somewhere.</p>
+                                <button onclick="startTimerOnly()" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                                    Continue without music
+                                </button>
+                            </div>
+                        `;
+                    }
+                }, 10000);
+            } else {
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('spotify-required').classList.remove('hidden');
+            }
+
+        } catch (error) {
+            showToast('Failed to load class', 'error');
+            setTimeout(() => window.location.href = '/plans', 1500);
+        }
+    }
+
+    function startTimerOnly() {
+        timerOnlyMode = true;
+        document.getElementById('spotify-required').classList.add('hidden');
+        document.getElementById('loading-state').classList.add('hidden');
+        document.getElementById('player-ui').classList.remove('hidden');
+        loadSegment(0);
+    }
+
+    // Spotify Web Playback SDK
+    window.onSpotifyWebPlaybackSDKReady = () => {
+        console.log('Spotify SDK ready callback fired');
+        if (!spotifyAccessToken) {
+            console.log('No access token, skipping player init');
+            return;
+        }
+
+        console.log('Creating Spotify player...');
+        spotifyPlayer = new Spotify.Player({
+            name: 'Cycle Planner',
+            getOAuthToken: async cb => {
+                // Try to refresh if token might be stale
+                if (!spotifyAccessToken) {
+                    await refreshSpotifyToken();
+                }
+                cb(spotifyAccessToken);
+            },
+            volume: 0.7
+        });
+
+        spotifyPlayer.addListener('ready', ({ device_id }) => {
+            console.log('Spotify player ready, device_id:', device_id);
+            spotifyDeviceId = device_id;
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('player-ui').classList.remove('hidden');
+            loadSegment(0);
+        });
+
+        spotifyPlayer.addListener('not_ready', ({ device_id }) => {
+            console.log('Device has gone offline', device_id);
+        });
+
+        spotifyPlayer.addListener('player_state_changed', state => {
+            if (!state) return;
+            // Update now playing display
+            const track = state.track_window.current_track;
+            if (track) {
+                document.getElementById('now-playing').classList.remove('hidden');
+                document.getElementById('track-name').textContent = track.name;
+                document.getElementById('track-artist').textContent = track.artists.map(a => a.name).join(', ');
+                if (track.album.images[0]) {
+                    document.getElementById('track-image').innerHTML = `<img src="${track.album.images[0].url}" class="w-16 h-16 rounded">`;
+                }
+            }
+        });
+
+        spotifyPlayer.addListener('initialization_error', ({ message }) => {
+            console.error('Spotify init error:', message);
+            showToast('Spotify player failed to initialize: ' + message, 'error');
+        });
+
+        spotifyPlayer.addListener('authentication_error', async ({ message }) => {
+            console.error('Spotify auth error:', message);
+            // Try to refresh token and reconnect
+            const refreshed = await refreshSpotifyToken();
+            if (refreshed) {
+                console.log('Token refreshed, reconnecting player...');
+                spotifyPlayer.connect();
+            } else {
+                showToast('Spotify authentication failed. Please reconnect.', 'error');
+            }
+        });
+
+        spotifyPlayer.addListener('account_error', ({ message }) => {
+            console.error('Spotify account error:', message);
+            showToast('Spotify Premium required for playback', 'error');
+            // Offer timer-only mode
+            document.getElementById('loading-state').innerHTML = `
+                <div class="text-center">
+                    <p class="text-red-600 mb-4">Spotify Premium is required for playback.</p>
+                    <button onclick="startTimerOnly()" class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                        Continue without music
+                    </button>
+                </div>
+            `;
+        });
+
+        console.log('Connecting Spotify player...');
+        spotifyPlayer.connect().then(success => {
+            console.log('Spotify connect result:', success);
+            if (!success) {
+                console.error('Failed to connect to Spotify');
+            }
+        });
+    };
+
+    function initSpotifyPlayer() {
+        console.log('Initializing Spotify player...');
+        // SDK will auto-init when ready via onSpotifyWebPlaybackSDKReady
+        if (window.Spotify) {
+            console.log('Spotify SDK already loaded');
+            window.onSpotifyWebPlaybackSDKReady();
+        } else {
+            console.log('Waiting for Spotify SDK to load...');
+        }
+    }
+
+    function loadSegment(index) {
+        if (index < 0 || index >= plan.segments.length) return;
+
+        currentSegmentIndex = index;
+        const segment = plan.segments[index];
+        segmentTimeRemaining = segment.duration_seconds;
+
+        // Update UI
+        document.getElementById('segment-name').textContent = segment.name;
+        document.getElementById('segment-timer').textContent = formatTime(segmentTimeRemaining);
+        document.getElementById('segment-progress-bar').style.width = '0%';
+        document.getElementById('segment-intensity').textContent = segment.intensity;
+        document.getElementById('segment-position').textContent = segment.position;
+        document.getElementById('segment-bpm').textContent = segment.suggested_bpm_range || '';
+        document.getElementById('segment-cues').textContent = segment.description || '';
+
+        // Update segments list
+        updateSegmentsList();
+
+        // Set up song timing
+        songElapsedTime = segment.song_start_seconds || 0;
+        currentSongEndTime = segment.song_end_seconds || null;
+        currentFadeOut = segment.fade_out === true;
+
+        // Update Now Playing display immediately (don't wait for Spotify state)
+        if (segment.spotify_uri) {
+            document.getElementById('now-playing').classList.remove('hidden');
+            document.getElementById('track-name').textContent = segment.song || 'Loading...';
+            document.getElementById('track-artist').textContent = '';
+            document.getElementById('track-image').innerHTML = '<div class="w-16 h-16 bg-gray-200 rounded"></div>';
+        } else {
+            document.getElementById('now-playing').classList.add('hidden');
+        }
+    }
+
+    // Separate function to start playing current segment's song
+    async function playCurrentSegmentSong() {
+        const segment = plan.segments[currentSegmentIndex];
+        if (!timerOnlyMode && segment.spotify_uri && spotifyDeviceId) {
+            const startMs = (segment.song_start_seconds || 0) * 1000;
+            await playSong(segment.spotify_uri, startMs);
+            songStartedForSegment = currentSegmentIndex;
+        }
+    }
+
+    async function playSong(uri, positionMs = 0) {
+        console.log('playSong called:', { uri, positionMs, deviceId: spotifyDeviceId });
+
+        if (!spotifyDeviceId) {
+            console.error('No Spotify device ID available');
+            return;
+        }
+
+        try {
+            // First, transfer playback to this device
+            const transferResponse = await spotifyApiFetch('https://api.spotify.com/v1/me/player', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    device_ids: [spotifyDeviceId],
+                    play: false
+                })
+            });
+
+            if (!transferResponse.ok && transferResponse.status !== 204) {
+                console.warn('Transfer playback response:', transferResponse.status);
+            }
+
+            // Small delay to let transfer complete
+            await new Promise(resolve => setTimeout(resolve, 300));
+
+            // Now play the track
+            const playResponse = await spotifyApiFetch(`https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    uris: [uri],
+                    position_ms: positionMs
+                })
+            });
+
+            if (!playResponse.ok && playResponse.status !== 204) {
+                const errorText = await playResponse.text();
+                console.error('Spotify play failed:', playResponse.status, errorText);
+                showToast('Spotify playback failed: ' + playResponse.status, 'error');
+            } else {
+                console.log('Spotify play request successful');
+            }
+        } catch (error) {
+            console.error('Failed to play song:', error);
+            showToast('Failed to play song: ' + error.message, 'error');
+        }
+    }
+
+    async function pauseSong() {
+        if (timerOnlyMode || !spotifyPlayer) return;
+        await spotifyPlayer.pause();
+    }
+
+    async function resumeSong() {
+        if (timerOnlyMode || !spotifyPlayer) return;
+        await spotifyPlayer.resume();
+    }
+
+    function togglePlayPause() {
+        if (isPlaying) {
+            pause();
+        } else {
+            play();
+        }
+    }
+
+    let songStartedForSegment = -1; // Track which segment has had its song started
+
+    async function play(skipSongStart = false) {
+        isPlaying = true;
+        document.getElementById('play-icon').classList.add('hidden');
+        document.getElementById('pause-icon').classList.remove('hidden');
+
+        const segment = plan.segments[currentSegmentIndex];
+
+        // Determine if we need to start a new song or just resume
+        if (!timerOnlyMode && segment.spotify_uri && spotifyDeviceId) {
+            if (skipSongStart || songStartedForSegment === currentSegmentIndex) {
+                // Just resume - song already started for this segment
+                await spotifyPlayer.resume();
+            } else {
+                // Start the song fresh
+                const startMs = (segment.song_start_seconds || 0) * 1000;
+                const elapsedInSegment = segment.duration_seconds - segmentTimeRemaining;
+                const adjustedStartMs = startMs + (elapsedInSegment * 1000);
+                await playSong(segment.spotify_uri, adjustedStartMs);
+                songStartedForSegment = currentSegmentIndex;
+            }
+        }
+
+        startTimer();
+    }
+
+    function pause() {
+        isPlaying = false;
+        document.getElementById('play-icon').classList.remove('hidden');
+        document.getElementById('pause-icon').classList.add('hidden');
+
+        pauseSong();
+
+        if (timerInterval) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+    }
+
+    async function nextSegment() {
+        if (currentSegmentIndex < plan.segments.length - 1) {
+            const wasPlaying = isPlaying;
+            if (isPlaying) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            loadSegment(currentSegmentIndex + 1);
+            if (wasPlaying) {
+                await playCurrentSegmentSong();
+                play(true); // true = skip song start since we just started it
+            }
+        }
+    }
+
+    async function previousSegment() {
+        if (currentSegmentIndex > 0) {
+            const wasPlaying = isPlaying;
+            if (isPlaying) {
+                clearInterval(timerInterval);
+                timerInterval = null;
+            }
+            loadSegment(currentSegmentIndex - 1);
+            if (wasPlaying) {
+                await playCurrentSegmentSong();
+                play(true);
+            }
+        }
+    }
+
+    function setVolume(value) {
+        currentVolume = value / 100;
+        if (spotifyPlayer) {
+            spotifyPlayer.setVolume(currentVolume);
+        }
+    }
+
+    function updateSegmentsList() {
+        const container = document.getElementById('all-segments');
+
+        container.innerHTML = plan.segments.map((seg, i) => {
+            const isCurrent = i === currentSegmentIndex;
+            const bgClass = isCurrent ? 'bg-indigo-100 border-indigo-300' : 'bg-gray-50';
+            const textClass = isCurrent ? 'text-indigo-700 font-semibold' : 'text-gray-700';
+
+            return `
+                <div class="flex items-center justify-between p-2 rounded border ${bgClass}">
+                    <div class="flex items-center gap-2">
+                        <button onclick="jumpToSegment(${i})" class="p-1 rounded hover:bg-gray-200 text-gray-500 hover:text-indigo-600" title="Start from here">
+                            <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </button>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="${textClass} text-sm">${escapeHtml(seg.name)}</span>
+                                <span class="text-xs text-gray-500">${formatTime(seg.duration_seconds)}</span>
+                            </div>
+                            ${seg.song ? `<div class="text-xs text-gray-500 truncate max-w-xs">${escapeHtml(seg.song)}</div>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex gap-2 items-center">
+                        <span class="text-xs px-2 py-0.5 rounded bg-gray-200">${seg.intensity}</span>
+                        ${isCurrent ? '<span class="text-xs text-indigo-600">current</span>' : ''}
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    async function jumpToSegment(index) {
+        const wasPlaying = isPlaying;
+        if (isPlaying) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            await pauseSong();
+        }
+        loadSegment(index);
+        if (wasPlaying) {
+            await playCurrentSegmentSong();
+            play(true);
+        }
+    }
+
+    function formatTime(totalSeconds) {
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+
+    function skipTime(seconds) {
+        const segment = plan.segments[currentSegmentIndex];
+        const totalDuration = segment.duration_seconds;
+        const currentElapsed = totalDuration - segmentTimeRemaining;
+        const newElapsed = Math.max(0, Math.min(totalDuration, currentElapsed + seconds));
+        seekToElapsed(newElapsed);
+    }
+
+    function seekToPosition(event) {
+        const progressBar = document.getElementById('segment-progress');
+        const rect = progressBar.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const percentage = Math.max(0, Math.min(1, clickX / rect.width));
+
+        const segment = plan.segments[currentSegmentIndex];
+        const newElapsed = Math.floor(segment.duration_seconds * percentage);
+        seekToElapsed(newElapsed);
+    }
+
+    function seekToElapsed(newElapsed) {
+        const segment = plan.segments[currentSegmentIndex];
+        const totalDuration = segment.duration_seconds;
+        const newRemaining = totalDuration - newElapsed;
+
+        // Update segment timer
+        segmentTimeRemaining = newRemaining;
+        songElapsedTime = (segment.song_start_seconds || 0) + newElapsed;
+
+        // Update UI
+        document.getElementById('segment-timer').textContent = formatTime(segmentTimeRemaining);
+        const progress = (newElapsed / totalDuration) * 100;
+        document.getElementById('segment-progress-bar').style.width = `${progress}%`;
+
+        // Seek Spotify if playing
+        if (isPlaying && !timerOnlyMode && segment.spotify_uri && spotifyPlayer) {
+            const seekMs = songElapsedTime * 1000;
+            spotifyPlayer.seek(seekMs).catch(err => console.error('Seek failed:', err));
+        }
+    }
+
+    function startTimer() {
+        timerInterval = setInterval(() => {
+            segmentTimeRemaining--;
+            songElapsedTime++;
+
+            const segment = plan.segments[currentSegmentIndex];
+
+            // Check if we need to stop song at specific end time
+            if (!timerOnlyMode && spotifyPlayer && currentSongEndTime) {
+                const timeUntilSongEnd = currentSongEndTime - songElapsedTime;
+
+                if (currentFadeOut && timeUntilSongEnd <= 3 && timeUntilSongEnd > 0) {
+                    const fadeVolume = (timeUntilSongEnd / 3) * currentVolume;
+                    spotifyPlayer.setVolume(fadeVolume);
+                } else if (timeUntilSongEnd <= 0) {
+                    spotifyPlayer.pause();
+                    spotifyPlayer.setVolume(currentVolume);
+                }
+            }
+            // Fade out at segment end (if no specific song end time)
+            else if (!timerOnlyMode && spotifyPlayer && !currentSongEndTime && currentFadeOut) {
+                if (segmentTimeRemaining <= 3 && segmentTimeRemaining > 0) {
+                    const fadeVolume = (segmentTimeRemaining / 3) * currentVolume;
+                    spotifyPlayer.setVolume(fadeVolume);
+                }
+            }
+
+            if (segmentTimeRemaining <= 0) {
+                if (spotifyPlayer) spotifyPlayer.setVolume(currentVolume);
+
+                if (currentSegmentIndex < plan.segments.length - 1) {
+                    loadSegment(currentSegmentIndex + 1);
+                    playCurrentSegmentSong();
+                } else {
+                    pause();
+                    showToast('Class complete!', 'success');
+                    return;
+                }
+            }
+
+            document.getElementById('segment-timer').textContent = formatTime(segmentTimeRemaining);
+            const progress = ((segment.duration_seconds - segmentTimeRemaining) / segment.duration_seconds) * 100;
+            document.getElementById('segment-progress-bar').style.width = `${progress}%`;
+        }, 1000);
+    }
+
+    function escapeHtml(text) {
+        if (!text) return '';
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Keyboard controls
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            togglePlayPause();
+        } else if (e.code === 'ArrowRight') {
+            if (e.shiftKey) {
+                nextSegment();
+            } else {
+                skipTime(10);
+            }
+        } else if (e.code === 'ArrowLeft') {
+            if (e.shiftKey) {
+                previousSegment();
+            } else {
+                skipTime(-10);
+            }
+        }
+    });
+
+    init();
+</script>
+{% endblock %}

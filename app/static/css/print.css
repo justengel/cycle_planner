@@ -1,0 +1,80 @@
+/* Print-specific styles */
+@media print {
+    body {
+        font-size: 12pt;
+        color: #000;
+        background: #fff;
+    }
+
+    /* Hide navigation and non-essential elements */
+    nav,
+    footer,
+    button,
+    .print\\:hidden {
+        display: none !important;
+    }
+
+    /* Show print-only elements */
+    .print\\:block {
+        display: block !important;
+    }
+
+    /* Table styling */
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 1rem;
+    }
+
+    th, td {
+        border: 1px solid #ccc;
+        padding: 6px 8px;
+        text-align: left;
+    }
+
+    th {
+        background: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Intensity badges */
+    .bg-green-100 { background: #d1fae5 !important; }
+    .bg-yellow-100 { background: #fef3c7 !important; }
+    .bg-red-100 { background: #fee2e2 !important; }
+
+    /* Page break handling */
+    .page-break {
+        page-break-before: always;
+    }
+
+    h2, h3 {
+        page-break-after: avoid;
+    }
+
+    tr {
+        page-break-inside: avoid;
+    }
+
+    /* Spacing adjustments */
+    .space-y-6 > * + * {
+        margin-top: 1rem;
+    }
+
+    /* Song notes - show lines */
+    input[type="text"] {
+        border: none !important;
+        border-bottom: 1px solid #999 !important;
+        background: transparent !important;
+        width: 100%;
+        padding: 2px 0;
+    }
+
+    /* Coaching cues */
+    .bg-gray-50 {
+        background: #f9f9f9 !important;
+        border: 1px solid #ddd;
+        padding: 8px;
+        margin-bottom: 8px;
+    }
+}
