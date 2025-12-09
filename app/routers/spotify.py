@@ -153,25 +153,6 @@ async def search_tracks(request: Request, q: str, limit: int = 10):
                 "danceability": None,
             }
 
-            # Get audio features for tempo/energy/valence/danceability
-            try:
-                audio_features = await spotify_service.get_audio_features(track["id"], access_token)
-                if audio_features:
-                    track_data["tempo"] = round(audio_features.get("tempo", 0))
-                    track_data["energy"] = round(audio_features.get("energy", 0) * 100)
-                    track_data["valence"] = round(audio_features.get("valence", 0) * 100)
-                    track_data["danceability"] = round(audio_features.get("danceability", 0) * 100)
-                else:
-                    # Fallback to GetSongBPM
-                    bpm_data = await getsongbpm_service.search_song_bpm(
-                        track["name"],
-                        track["artists"][0]["name"] if track["artists"] else None
-                    )
-                    if bpm_data and bpm_data.get("tempo"):
-                        track_data["tempo"] = bpm_data["tempo"]
-            except Exception:
-                pass  # Skip if audio features fail
-
             tracks.append(track_data)
 
         return {"tracks": tracks}

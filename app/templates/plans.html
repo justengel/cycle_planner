@@ -26,11 +26,10 @@
         return div.innerHTML;
     }
 
-    // Check auth on page load
+    // Check auth on page load (uses shared auth from base.html)
     async function checkAuth() {
-        const response = await fetch('/api/auth/me');
-        const data = await response.json();
-        if (!data.authenticated) {
+        const data = await getAuthStatus();
+        if (!data || !data.authenticated) {
             window.location.href = '/login';
             return false;
         }

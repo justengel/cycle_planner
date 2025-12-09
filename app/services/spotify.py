@@ -128,7 +128,13 @@ async def get_audio_features(track_id: str, access_token: str) -> dict | None:
             headers={"Authorization": f"Bearer {access_token}"},
         )
         if response.status_code == 200:
-            return response.json()
+            data = response.json()
+            if data and data.get("tempo"):
+                print(f"[spotify] Audio features for {track_id}: tempo={data.get('tempo')}")
+                return data
+            print(f"[spotify] Audio features empty for {track_id}")
+            return None
+        print(f"[spotify] Audio features failed for {track_id}: {response.status_code}")
         return None
 
 

@@ -468,7 +468,10 @@
             const tempoDisplay = segmentEl.querySelector('.segment-tempo-display');
             if (tempoDisplay && (data.tempo || data.energy)) {
                 const parts = [];
-                if (data.tempo) parts.push(`${data.tempo} BPM`);
+                if (data.tempo) {
+                    const source = data.energy ? '' : 'GetSongBPM Tempo: ';
+                    parts.push(`${source}${data.tempo} BPM`);
+                }
                 if (data.energy) parts.push(`Energy ${data.energy}%`);
                 if (data.valence) parts.push(`Mood ${data.valence}%`);
                 if (data.danceability) parts.push(`Dance ${data.danceability}%`);
@@ -584,22 +587,8 @@
             updateTimeMarkers();
         }
 
-        // Update audio features display
-        const tempoDisplay = currentSegmentForSearch.querySelector('.segment-tempo-display');
-        if (tempoDisplay) {
-            if (tempo || energy) {
-                const parts = [];
-                if (tempo) parts.push(`${tempo} BPM`);
-                if (energy) parts.push(`Energy ${energy}%`);
-                if (valence) parts.push(`Mood ${valence}%`);
-                if (danceability) parts.push(`Dance ${danceability}%`);
-                tempoDisplay.textContent = parts.join(' · ');
-                tempoDisplay.classList.remove('hidden');
-            } else {
-                tempoDisplay.textContent = '';
-                tempoDisplay.classList.add('hidden');
-            }
-        }
+        // Fetch audio features asynchronously
+        fetchAudioFeatures(currentSegmentForSearch, uri);
 
         closeSpotifySearch();
     }

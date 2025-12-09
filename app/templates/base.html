@@ -126,23 +126,26 @@
             }
         }
 
-        // Check auth status
+        // Check auth status - returns auth data for child pages to use
+        let authData = null;
+        let authPromise = null;
+
         async function checkAuthStatus() {
             const authEl = document.getElementById('auth-status');
             const navLinks = document.getElementById('auth-nav-links');
-            if (!authEl) return;
+            if (!authEl) return null;
 
             try {
                 const response = await fetch('/api/auth/me');
-                const data = await response.json();
+                authData = await response.json();
 
-                if (data.authenticated) {
+                if (authData.authenticated) {
                     navLinks.innerHTML = `
                         <a href="/" class="hover:text-indigo-200">Generator</a>
                         <a href="/plans" class="hover:text-indigo-200 ml-4">My Plans</a>
                     `;
                     authEl.innerHTML = `
-                        <span class="text-indigo-200 text-sm mr-2">${data.email}</span>
+                        <span class="text-indigo-200 text-sm mr-2">${authData.email}</span>
                         <button onclick="logout()" class="text-sm bg-indigo-500 hover:bg-indigo-400 px-3 py-1 rounded">
                             Logout
                         </button>
@@ -155,9 +158,17 @@
                         </a>
                     `;
                 }
+                return authData;
             } catch (error) {
                 console.error('Failed to check auth status:', error);
+                return null;
             }
+        }
+
+        // Get auth status (waits for initial check if needed)
+        function getAuthStatus() {
+            if (authData !== null) return Promise.resolve(authData);
+            return authPromise;
         }
 
         async function logout() {
@@ -169,7 +180,7 @@
             }
         }
 
-        checkAuthStatus();
+        authPromise = checkAuthStatus();
     </script>
 
     {% block scripts %}{% endblock %}
