@@ -16,6 +16,15 @@ class SignupRequest(BaseModel):
     password: str
 
 
+class ForgotPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    access_token: str
+    password: str
+
+
 class AuthResponse(BaseModel):
     access_token: str
     user_id: str
@@ -105,3 +114,28 @@ async def get_current_user(request: Request, client: SupabaseClient = Depends(ge
         pass
 
     return {"authenticated": False}
+
+
+@router.post("/forgot-password")
+async def forgot_password(request: ForgotPasswordRequest, client: SupabaseClient = Depends(get_supabase_client)):
+    """Send a password reset email."""
+    try:
+        client.auth.reset_password_email(request.email)
+        return {"message": "Password reset email sent"}
+    except Exception as e:
+        # Don't reveal if email exists or not for security
+        return {"message": "Password reset email sent"}
+
+
+@router.post("/reset-password")
+async def reset_password(request: ResetPasswordRequest, client: SupabaseClient = Depends(get_supabase_client)):
+    """Reset password using the token from email."""
+    try:
+        # Use the access token to update the user's password
+        client.auth.admin.update_user_by_id(
+            client.auth.get_user(request.access_token).user.id,
+            {"password": request.password}
+        )
+        return {"message": "Password reset successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail="Failed to reset password. Link may be expired.")

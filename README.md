@@ -100,3 +100,17 @@ The application will be available at http://localhost:8000
 2. Copy the project URL, anon key, and service role key to your `.env` file
 3. Get the database connection string from Settings > Database > Connection string > URI
 4. Run migrations with `alembic upgrade head` to create the required tables
+
+### Authentication Configuration
+
+In your Supabase dashboard, configure the following:
+
+**URL Configuration** (Authentication → URL Configuration):
+- Site URL: `https://yourdomain.com`
+- Redirect URLs: Add `https://yourdomain.com/**`
+
+**Password Reset** (Authentication → Email Templates → Reset Password):
+- Update the action button URL to: `{{ .SiteURL }}/reset-password`
+
+**Custom SMTP** (Optional - Authentication → SMTP Settings):
+- Enable custom SMTP to send emails from your own domain instead of Supabase's default address
