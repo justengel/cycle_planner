@@ -105,4 +105,4 @@ async def signup_page(request: Request):
 if __name__ == "__main__":
     import uvicorn
     settings = get_settings()
-    uvicorn.run("main:app", host="127.0.0.1", port=settings.port, reload=True)
+    uvicorn.run("main:app", host=settings.host, port=settings.port, reload=True)

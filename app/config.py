@@ -5,6 +5,7 @@ from functools import lru_cache
 class Settings(BaseSettings):
     app_env: str = "development"
     app_secret_key: str = "change-me-in-production"
+    host: str = "127.0.0.1"
     port: int = 8000
 
     anthropic_api_key: str
