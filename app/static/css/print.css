@@ -1,9 +1,15 @@
 /* Print-specific styles */
 @media print {
+    @page {
+        margin: 0.5in;
+    }
+
     body {
-        font-size: 12pt;
+        font-size: 11pt;
         color: #000;
         background: #fff;
+        margin: 0;
+        padding: 0;
     }
 
     /* Hide navigation and non-essential elements */
@@ -12,6 +18,27 @@
     button,
     .print\\:hidden {
         display: none !important;
+    }
+
+    /* Tighten container spacing */
+    .shadow-md {
+        box-shadow: none !important;
+    }
+
+    .p-6 {
+        padding: 0.5rem !important;
+    }
+
+    .rounded-lg {
+        border-radius: 0 !important;
+    }
+
+    .mb-4 {
+        margin-bottom: 0.25rem !important;
+    }
+
+    .mt-4 {
+        margin-top: 0.25rem !important;
     }
 
     /* Show print-only elements */
@@ -58,7 +85,24 @@
 
     /* Spacing adjustments */
     .space-y-6 > * + * {
-        margin-top: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .space-y-3 > * + * {
+        margin-top: 0.25rem;
+    }
+
+    /* Compact segments */
+    .border {
+        padding: 0.4rem !important;
+    }
+
+    .text-sm {
+        font-size: 10pt;
+    }
+
+    .text-xs {
+        font-size: 9pt;
     }
 
     /* Song notes - show lines */

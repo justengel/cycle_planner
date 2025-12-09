@@ -114,3 +114,22 @@ In your Supabase dashboard, configure the following:
 
 **Custom SMTP** (Optional - Authentication → SMTP Settings):
 - Enable custom SMTP to send emails from your own domain instead of Supabase's default address
+
+## GetSongBPM Setup (Optional)
+
+GetSongBPM is used as a fallback when Spotify audio features are unavailable.
+
+1. Create an account at https://getsongbpm.com/api
+2. Set your **Backlink URL** to: `https://yourdomain.com`
+3. Copy the API key to your `.env` file
+
+## Redirect URLs Reference
+
+When deploying to production, configure these URLs in each service:
+
+| Service | URL Type | Development | Production |
+|---------|----------|-------------|------------|
+| Spotify | Redirect URI | `http://localhost:8000/api/spotify/callback` | `https://yourdomain.com/api/spotify/callback` |
+| Supabase | Site URL | `http://localhost:8000` | `https://yourdomain.com` |
+| Supabase | Redirect URLs | `http://localhost:8000/**` | `https://yourdomain.com/**` |
+| GetSongBPM | Backlink URL | `http://localhost:8000` | `https://yourdomain.com` |
