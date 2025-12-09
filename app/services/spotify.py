@@ -15,6 +15,8 @@ SCOPES = [
     "user-read-private",
     "user-read-playback-state",
     "user-modify-playback-state",
+    "playlist-modify-public",
+    "playlist-modify-private",
 ]
 
 
@@ -128,3 +130,49 @@ async def get_audio_features(track_id: str, access_token: str) -> dict | None:
         if response.status_code == 200:
             return response.json()
         return None
+
+
+async def create_playlist(
+    access_token: str,
+    name: str,
+    description: str = "",
+    public: bool = False,
+) -> dict:
+    """Create a new playlist for the current user."""
+    profile = await get_user_profile(access_token)
+    user_id = profile["id"]
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{SPOTIFY_API_URL}/users/{user_id}/playlists",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "name": name,
+                "description": description,
+                "public": public,
+            },
+        )
+        response.raise_for_status()
+        return response.json()
+
+
+async def add_tracks_to_playlist(
+    access_token: str,
+    playlist_id: str,
+    track_uris: list[str],
+) -> dict:
+    """Add tracks to a playlist."""
+    async with httpx.AsyncClient() as client:
+        response = await client.post(
+            f"{SPOTIFY_API_URL}/playlists/{playlist_id}/tracks",
+            headers={
+                "Authorization": f"Bearer {access_token}",
+                "Content-Type": "application/json",
+            },
+            json={"uris": track_uris},
+        )
+        response.raise_for_status()
+        return response.json()

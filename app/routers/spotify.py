@@ -1,10 +1,12 @@
 import secrets
-from fastapi import APIRouter, HTTPException, Request, Response
+from fastapi import APIRouter, HTTPException, Request, Response, Depends
 from fastapi.responses import RedirectResponse
+from pydantic import BaseModel
 
 from app.config import get_settings
 from app.services import spotify as spotify_service
 from app.services import getsongbpm as getsongbpm_service
+from app.services.supabase import get_supabase_client, SupabaseClient
 
 router = APIRouter()
 
@@ -241,3 +243,90 @@ async def spotify_logout(response: Response):
     response.delete_cookie("spotify_access_token")
     response.delete_cookie("spotify_refresh_token")
     return {"message": "Disconnected from Spotify"}
+
+
+class CreatePlaylistRequest(BaseModel):
+    plan_id: str
+    public: bool = False
+
+
+async def get_current_user_id(
+    request: Request,
+    client: SupabaseClient = Depends(get_supabase_client)
+) -> str:
+    """Extract and verify user ID from auth cookie."""
+    access_token = request.cookies.get("access_token")
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    try:
+        user_response = client.auth.get_user(access_token)
+        if user_response and user_response.user:
+            return user_response.user.id
+    except Exception:
+        pass
+
+    raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+
+@router.post("/create-playlist")
+async def create_playlist_from_plan(
+    request: Request,
+    body: CreatePlaylistRequest,
+    user_id: str = Depends(get_current_user_id),
+    client: SupabaseClient = Depends(get_supabase_client),
+):
+    """Create a Spotify playlist from a saved plan."""
+    access_token = request.cookies.get("spotify_access_token")
+
+    if not access_token:
+        raise HTTPException(status_code=401, detail="Not connected to Spotify")
+
+    # Fetch the plan
+    try:
+        plan_response = client.table("lesson_plans").select("*").eq("id", body.plan_id).eq("user_id", user_id).single().execute()
+        if not plan_response.data:
+            raise HTTPException(status_code=404, detail="Plan not found")
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch plan: {str(e)}")
+
+    plan_data = plan_response.data["plan_json"]
+    theme = plan_data.get("theme", "Cycle Class")
+
+    # Extract track URIs from segments
+    track_uris = []
+    for segment in plan_data.get("segments", []):
+        uri = segment.get("spotify_uri")
+        if uri and uri not in track_uris:
+            track_uris.append(uri)
+
+    if not track_uris:
+        raise HTTPException(status_code=400, detail="No Spotify tracks linked to this plan")
+
+    # Create the playlist
+    try:
+        playlist = await spotify_service.create_playlist(
+            access_token=access_token,
+            name=f"Cycle Class: {theme}",
+            description=f"Generated playlist for {plan_data.get('total_duration_minutes', 0)} minute cycle class",
+            public=body.public,
+        )
+
+        # Add tracks to the playlist
+        await spotify_service.add_tracks_to_playlist(
+            access_token=access_token,
+            playlist_id=playlist["id"],
+            track_uris=track_uris,
+        )
+
+        return {
+            "playlist_id": playlist["id"],
+            "playlist_url": playlist["external_urls"]["spotify"],
+            "name": playlist["name"],
+            "tracks_added": len(track_uris),
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to create playlist: {str(e)}")
