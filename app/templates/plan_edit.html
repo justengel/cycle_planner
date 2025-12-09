@@ -52,22 +52,22 @@
     </div>
 
     <!-- Actions -->
-    <div class="flex justify-between items-center print:hidden">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 print:hidden">
         <div id="back-links">
-            <a href="/" class="text-gray-600 hover:text-gray-800">
+            <a href="/" class="text-gray-600 hover:text-gray-800 text-sm">
                 &larr; Generate New Plan
             </a>
         </div>
-        <div class="space-x-3">
+        <div class="flex gap-2">
             <button
                 onclick="window.print()"
-                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200"
+                class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm"
             >
                 Print
             </button>
             <button
                 onclick="savePlan()"
-                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700"
+                class="bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm"
             >
                 Save Plan
             </button>
@@ -149,10 +149,19 @@
 
         <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
             <span class="segment-time-marker"></span>
-            <div class="space-x-3 flex items-center">
-                <button onclick="moveSegment(this, -1)" class="hover:text-gray-600">&uarr; Move Up</button>
-                <button onclick="moveSegment(this, 1)" class="hover:text-gray-600">&darr; Move Down</button>
-                <button onclick="removeSegment(this)" class="px-2 py-0.5 bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 rounded font-medium" title="Remove segment">&times; Remove</button>
+            <div class="flex items-center gap-1 sm:gap-3">
+                <button onclick="moveSegment(this, -1)" class="hover:text-gray-600 p-1" title="Move Up">
+                    <span class="hidden sm:inline">&uarr; Up</span>
+                    <span class="sm:hidden">&uarr;</span>
+                </button>
+                <button onclick="moveSegment(this, 1)" class="hover:text-gray-600 p-1" title="Move Down">
+                    <span class="hidden sm:inline">&darr; Down</span>
+                    <span class="sm:hidden">&darr;</span>
+                </button>
+                <button onclick="removeSegment(this)" class="px-2 py-0.5 bg-red-100 text-red-600 hover:bg-red-200 hover:text-red-800 rounded font-medium" title="Remove segment">
+                    <span class="hidden sm:inline">&times; Remove</span>
+                    <span class="sm:hidden">&times;</span>
+                </button>
             </div>
         </div>
     </div>

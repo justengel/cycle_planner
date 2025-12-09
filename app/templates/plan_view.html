@@ -6,22 +6,22 @@
 <div id="plan-view" class="space-y-6">
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-md p-6">
-        <div class="flex justify-between items-start">
+        <div class="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div>
                 <h1 id="plan-theme" class="text-2xl font-bold text-gray-800">Loading...</h1>
                 <p id="plan-duration" class="text-gray-600 mt-1"></p>
             </div>
-            <div class="space-x-3 print:hidden">
-                <button onclick="window.print()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200">
+            <div class="flex flex-wrap gap-2 print:hidden">
+                <button onclick="window.print()" class="bg-gray-100 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-200 text-sm">
                     Print
                 </button>
-                <button id="spotify-playlist-btn" onclick="saveToSpotify()" class="bg-[#1DB954] text-white px-4 py-2 rounded-md hover:bg-[#1ed760] hidden">
-                    Save Spotify Playlist
+                <button id="spotify-playlist-btn" onclick="saveToSpotify()" class="bg-[#1DB954] text-white px-4 py-2 rounded-md hover:bg-[#1ed760] hidden text-sm">
+                    Save Playlist
                 </button>
-                <a id="edit-link" href="#" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700">
+                <a id="edit-link" href="#" class="inline-block bg-indigo-600 text-white px-4 py-2 rounded-md hover:bg-indigo-700 text-sm">
                     Edit
                 </a>
-                <a id="play-link" href="#" class="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">
+                <a id="play-link" href="#" class="inline-block bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700 text-sm">
                     Start
                 </a>
             </div>

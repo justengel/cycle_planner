@@ -25,15 +25,39 @@
 </head>
 <body class="bg-gray-100 min-h-screen">
     <nav class="bg-indigo-600 text-white shadow-lg print:hidden">
-        <div class="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-            <a href="/" class="text-xl font-bold">Cycle Planner</a>
-            <div class="flex items-center space-x-4">
-                <span id="auth-nav-links">
-                    <a href="/" class="hover:text-indigo-200">Generator</a>
-                    <a href="/plans" class="hover:text-indigo-200 ml-4">My Plans</a>
-                </span>
-                <span id="spotify-status"></span>
-                <span id="auth-status"></span>
+        <div class="max-w-6xl mx-auto px-4 py-3">
+            <div class="flex justify-between items-center">
+                <a href="/" class="text-xl font-bold">Cycle Planner</a>
+
+                <!-- Desktop nav -->
+                <div class="hidden md:flex items-center space-x-4">
+                    <span id="auth-nav-links">
+                        <a href="/" class="hover:text-indigo-200">Generator</a>
+                        <a href="/plans" class="hover:text-indigo-200 ml-4">My Plans</a>
+                    </span>
+                    <span id="spotify-status"></span>
+                    <span id="auth-status"></span>
+                </div>
+
+                <!-- Mobile menu button -->
+                <button id="mobile-menu-btn" onclick="toggleMobileMenu()" class="md:hidden p-2 rounded hover:bg-indigo-500">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path id="menu-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                        <path id="close-icon" class="hidden" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- Mobile nav -->
+            <div id="mobile-menu" class="hidden md:hidden mt-3 pt-3 border-t border-indigo-500 space-y-3">
+                <div id="auth-nav-links-mobile" class="flex flex-col space-y-2">
+                    <a href="/" class="hover:text-indigo-200 py-1">Generator</a>
+                    <a href="/plans" class="hover:text-indigo-200 py-1">My Plans</a>
+                </div>
+                <div class="flex flex-wrap items-center gap-3 pt-2">
+                    <span id="spotify-status-mobile"></span>
+                    <span id="auth-status-mobile"></span>
+                </div>
             </div>
         </div>
     </nav>
@@ -51,6 +75,15 @@
     <div id="toast-container" class="fixed top-4 right-4 z-50 space-y-2 print:hidden"></div>
 
     <script>
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            const menuIcon = document.getElementById('menu-icon');
+            const closeIcon = document.getElementById('close-icon');
+            menu.classList.toggle('hidden');
+            menuIcon.classList.toggle('hidden');
+            closeIcon.classList.toggle('hidden');
+        }
+
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -79,36 +112,38 @@
         // Check Spotify connection status
         async function checkSpotifyStatus() {
             const statusEl = document.getElementById('spotify-status');
+            const statusElMobile = document.getElementById('spotify-status-mobile');
             if (!statusEl) return;
 
             try {
                 const response = await fetch('/api/spotify/token');
                 const data = await response.json();
 
-                if (data.connected) {
-                    statusEl.innerHTML = `
-                        <div class="flex items-center gap-2">
-                            <span class="flex items-center text-green-300 text-sm">
-                                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
-                                    <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
-                                </svg>
-                                Spotify
-                            </span>
-                            <button onclick="disconnectSpotify()" class="text-xs text-indigo-200 hover:text-white underline">
-                                Disconnect
-                            </button>
-                        </div>
-                    `;
-                } else {
-                    statusEl.innerHTML = `
-                        <a href="/api/spotify/login" class="flex items-center bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-sm">
+                const connectedHtml = `
+                    <div class="flex items-center gap-2">
+                        <span class="flex items-center text-green-300 text-sm">
                             <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
                             </svg>
-                            Connect Spotify
-                        </a>
-                    `;
-                }
+                            Spotify
+                        </span>
+                        <button onclick="disconnectSpotify()" class="text-xs text-indigo-200 hover:text-white underline">
+                            Disconnect
+                        </button>
+                    </div>
+                `;
+                const disconnectedHtml = `
+                    <a href="/api/spotify/login" class="flex items-center bg-green-500 hover:bg-green-600 text-white px-3 py-1 rounded-full text-sm">
+                        <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+                        </svg>
+                        Connect Spotify
+                    </a>
+                `;
+
+                const html = data.connected ? connectedHtml : disconnectedHtml;
+                statusEl.innerHTML = html;
+                if (statusElMobile) statusElMobile.innerHTML = html;
             } catch (error) {
                 console.error('Failed to check Spotify status:', error);
             }
@@ -132,7 +167,9 @@
 
         async function checkAuthStatus() {
             const authEl = document.getElementById('auth-status');
+            const authElMobile = document.getElementById('auth-status-mobile');
             const navLinks = document.getElementById('auth-nav-links');
+            const navLinksMobile = document.getElementById('auth-nav-links-mobile');
             if (!authEl) return null;
 
             try {
@@ -140,23 +177,40 @@
                 authData = await response.json();
 
                 if (authData.authenticated) {
-                    navLinks.innerHTML = `
+                    const navHtml = `
                         <a href="/" class="hover:text-indigo-200">Generator</a>
                         <a href="/plans" class="hover:text-indigo-200 ml-4">My Plans</a>
                     `;
+                    const navHtmlMobile = `
+                        <a href="/" class="hover:text-indigo-200 py-1">Generator</a>
+                        <a href="/plans" class="hover:text-indigo-200 py-1">My Plans</a>
+                    `;
+                    navLinks.innerHTML = navHtml;
+                    if (navLinksMobile) navLinksMobile.innerHTML = navHtmlMobile;
+
                     authEl.innerHTML = `
-                        <span class="text-indigo-200 text-sm mr-2">${authData.email}</span>
+                        <span class="text-indigo-200 text-sm mr-2 hidden lg:inline">${authData.email}</span>
+                        <button onclick="logout()" class="text-sm bg-indigo-500 hover:bg-indigo-400 px-3 py-1 rounded">
+                            Logout
+                        </button>
+                    `;
+                    if (authElMobile) authElMobile.innerHTML = `
+                        <span class="text-indigo-200 text-sm">${authData.email}</span>
                         <button onclick="logout()" class="text-sm bg-indigo-500 hover:bg-indigo-400 px-3 py-1 rounded">
                             Logout
                         </button>
                     `;
                 } else {
                     navLinks.innerHTML = '';
-                    authEl.innerHTML = `
+                    if (navLinksMobile) navLinksMobile.innerHTML = '';
+
+                    const loginHtml = `
                         <a href="/login" class="text-sm bg-white text-indigo-600 hover:bg-indigo-100 px-3 py-1 rounded font-medium">
                             Log In
                         </a>
                     `;
+                    authEl.innerHTML = loginHtml;
+                    if (authElMobile) authElMobile.innerHTML = loginHtml;
                 }
                 return authData;
             } catch (error) {
