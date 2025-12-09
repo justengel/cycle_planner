@@ -393,16 +393,14 @@
     }
 
     async function playSong(uri, positionMs = 0) {
-        console.log('playSong called:', { uri, positionMs, deviceId: spotifyDeviceId });
-
         if (!spotifyDeviceId) {
             console.error('No Spotify device ID available');
-            return;
+            return false;
         }
 
         try {
             // First, transfer playback to this device
-            const transferResponse = await spotifyApiFetch('https://api.spotify.com/v1/me/player', {
+            await spotifyApiFetch('https://api.spotify.com/v1/me/player', {
                 method: 'PUT',
                 body: JSON.stringify({
                     device_ids: [spotifyDeviceId],
@@ -410,12 +408,8 @@
                 })
             });
 
-            if (!transferResponse.ok && transferResponse.status !== 204) {
-                console.warn('Transfer playback response:', transferResponse.status);
-            }
-
-            // Small delay to let transfer complete
-            await new Promise(resolve => setTimeout(resolve, 300));
+            // Delay to let transfer complete (required for first play)
+            await new Promise(resolve => setTimeout(resolve, 500));
 
             // Now play the track
             const playResponse = await spotifyApiFetch(`https://api.spotify.com/v1/me/player/play?device_id=${spotifyDeviceId}`, {
@@ -430,12 +424,13 @@
                 const errorText = await playResponse.text();
                 console.error('Spotify play failed:', playResponse.status, errorText);
                 showToast('Spotify playback failed: ' + playResponse.status, 'error');
-            } else {
-                console.log('Spotify play request successful');
+                return false;
             }
+            return true;
         } catch (error) {
             console.error('Failed to play song:', error);
             showToast('Failed to play song: ' + error.message, 'error');
+            return false;
         }
     }
 
