@@ -7,6 +7,7 @@ from fastapi.templating import Jinja2Templates
 
 from app.config import get_settings
 from app.routers import auth, generate, plans, spotify
+from app.middleware import TokenRefreshMiddleware
 
 
 @asynccontextmanager
@@ -36,6 +37,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Token refresh middleware - automatically refreshes expired access tokens
+app.add_middleware(TokenRefreshMiddleware)
 
 # Static files and templates
 app.mount("/static", StaticFiles(directory="app/static"), name="static")

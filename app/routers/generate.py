@@ -5,25 +5,8 @@ from app.models.schemas import GenerateRequest, GenerateResponse, LessonPlan
 from app.services.ai import generate_lesson_plan
 from app.services.supabase import get_supabase_client, SupabaseClient
 from app.services.spotify import search_tracks, get_audio_features
-
-
-async def get_current_user_id(
-    request: Request,
-    client: SupabaseClient = Depends(get_supabase_client)
-) -> str:
-    """Extract and verify user ID from auth cookie."""
-    access_token = request.cookies.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    try:
-        user_response = client.auth.get_user(access_token)
-        if user_response and user_response.user:
-            return user_response.user.id
-    except Exception:
-        pass
-
-    raise HTTPException(status_code=401, detail="Invalid or expired token")
+from app.services.rate_limiter import check_rate_limit, record_request, get_remaining_requests
+from app.dependencies import get_current_user_id
 
 router = APIRouter()
 
@@ -107,11 +90,21 @@ async def generate(
     client: SupabaseClient = Depends(get_supabase_client),
 ):
     """Generate a cycle class lesson plan using AI and save it."""
+    # Check rate limit before doing any work
+    check_rate_limit(user_id)
+
     try:
         plan = await generate_lesson_plan(
             theme=request.theme,
             duration_minutes=request.duration_minutes,
         )
+
+        # Calculate total duration from segments
+        total_seconds = sum(seg.duration_seconds for seg in plan.segments)
+        plan.total_duration_minutes = (total_seconds + 59) // 60  # Round up
+
+        # Record successful generation for rate limiting
+        record_request(user_id)
 
         # Auto-link Spotify URIs if user is connected to Spotify
         spotify_token = http_request.cookies.get("spotify_access_token")
@@ -135,5 +128,15 @@ async def generate(
             plan_id = None
 
         return GenerateResponseWithId(plan=plan, id=plan_id)
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Generation failed: {str(e)}")
+
+
+@router.get("/rate-limit")
+async def get_rate_limit_status(
+    user_id: str = Depends(get_current_user_id),
+):
+    """Get current rate limit status for the user."""
+    return get_remaining_requests(user_id)

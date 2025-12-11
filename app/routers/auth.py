@@ -96,22 +96,42 @@ async def logout(response: Response):
 
 @router.get("/me")
 async def get_current_user(request: Request, client: SupabaseClient = Depends(get_supabase_client)):
-    """Get current logged-in user info."""
+    """Get current logged-in user info. Automatically refreshes expired tokens."""
     access_token = request.cookies.get("access_token")
-    if not access_token:
+    refresh_token = request.cookies.get("refresh_token")
+
+    if not access_token and not refresh_token:
         return {"authenticated": False}
 
-    try:
-        # Verify token with Supabase
-        user_response = client.auth.get_user(access_token)
-        if user_response and user_response.user:
-            return {
-                "authenticated": True,
-                "user_id": user_response.user.id,
-                "email": user_response.user.email,
-            }
-    except Exception:
-        pass
+    # Try with existing access token first
+    if access_token:
+        try:
+            user_response = client.auth.get_user(access_token)
+            if user_response and user_response.user:
+                return {
+                    "authenticated": True,
+                    "user_id": user_response.user.id,
+                    "email": user_response.user.email,
+                }
+        except Exception:
+            pass  # Token expired, try refresh below
+
+    # Try to refresh the token
+    if refresh_token:
+        try:
+            new_session = client.auth.refresh_session(refresh_token)
+            if new_session and new_session.session and new_session.user:
+                # Store new tokens in request state for middleware to set cookies
+                request.state.new_access_token = new_session.session.access_token
+                request.state.new_refresh_token = new_session.session.refresh_token
+                request.state.token_expires_in = new_session.session.expires_in
+                return {
+                    "authenticated": True,
+                    "user_id": new_session.user.id,
+                    "email": new_session.user.email,
+                }
+        except Exception:
+            pass  # Refresh token also invalid
 
     return {"authenticated": False}
 

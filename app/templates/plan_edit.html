@@ -4,6 +4,32 @@
 
 {% block content %}
 <div id="plan-editor" class="space-y-6">
+    <!-- AI Generation Notice (shown after AI generation) -->
+    <div id="spotify-prompt" class="hidden bg-amber-50 border border-amber-200 rounded-lg p-4">
+        <div class="flex gap-3">
+            <div class="flex-shrink-0">
+                <svg class="w-6 h-6 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                </svg>
+            </div>
+            <div class="flex-1">
+                <h3 class="font-semibold text-amber-800">Review AI-Generated Plan</h3>
+                <p class="text-sm text-amber-700 mt-1">
+                    <strong>AI suggestions may be inaccurate.</strong> Song names, artists, and durations are often incorrect.
+                    Please review and manually edit the plan as needed.
+                </p>
+                <p class="text-sm text-amber-700 mt-2">
+                    <strong>For playback:</strong> Connect to Spotify, then use the <span class="inline-flex items-center"><svg class="w-4 h-4 text-green-500 mx-1" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/></svg>Spotify picker</span> to select songs and populate the correct duration.
+                </p>
+            </div>
+            <button onclick="dismissSpotifyPrompt()" class="text-amber-400 hover:text-amber-600">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+    </div>
+
     <!-- Header -->
     <div class="bg-white rounded-lg shadow-md p-6">
         <div class="flex justify-between items-start gap-4">
@@ -20,6 +46,16 @@
                 <label class="block text-sm font-medium text-gray-700 mb-1">Total Duration</label>
                 <span id="total-duration" class="text-2xl font-bold text-indigo-600">0 min</span>
             </div>
+        </div>
+        <!-- Notes -->
+        <div class="mt-4">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+            <textarea
+                id="plan-notes"
+                rows="2"
+                class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 text-sm"
+                placeholder="Additional notes for this class..."
+            ></textarea>
         </div>
     </div>
 
@@ -38,17 +74,6 @@
         <div id="segments-container" class="space-y-4">
             <!-- Segments will be populated by JS -->
         </div>
-    </div>
-
-    <!-- Notes -->
-    <div class="bg-white rounded-lg shadow-md p-6">
-        <label class="block text-sm font-medium text-gray-700 mb-2">Notes</label>
-        <textarea
-            id="plan-notes"
-            rows="3"
-            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Additional notes for this class..."
-        ></textarea>
     </div>
 
     <!-- Actions -->
@@ -130,7 +155,7 @@
         </div>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">
             <div>
-                <label class="block text-xs font-medium text-gray-500 mb-1">BPM Range</label>
+                <label class="block text-xs font-medium text-gray-500 mb-1">RPM Range</label>
                 <input type="text" class="segment-bpm w-full px-2 py-1 border border-gray-300 rounded text-sm" placeholder="e.g., 90-100">
             </div>
             <div>
@@ -145,6 +170,25 @@
         <div>
             <label class="block text-xs font-medium text-gray-500 mb-1">Coaching Cues</label>
             <textarea class="segment-description w-full px-2 py-1 border border-gray-300 rounded text-sm" rows="2" placeholder="Instructions and motivation..."></textarea>
+        </div>
+
+        <!-- Sub-segments Section -->
+        <div class="sub-segments-section mt-3 border-t pt-3">
+            <div class="flex justify-between items-center mb-2">
+                <button type="button" onclick="toggleSubSegments(this)" class="text-xs text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
+                    <svg class="w-4 h-4 sub-segments-chevron transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                    </svg>
+                    <span class="sub-segments-toggle-text">Sub-segments</span>
+                    <span class="sub-segments-count text-gray-400">(0)</span>
+                </button>
+                <button type="button" onclick="addSubSegment(this)" class="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded hover:bg-indigo-200">
+                    + Add Sub-segment
+                </button>
+            </div>
+            <div class="sub-segments-container hidden space-y-2 ml-4 border-l-2 border-indigo-200 pl-3">
+                <!-- Sub-segments will be added here -->
+            </div>
         </div>
 
         <div class="flex justify-between items-center mt-2 text-xs text-gray-400">
@@ -163,6 +207,52 @@
                     <span class="sm:hidden">&times;</span>
                 </button>
             </div>
+        </div>
+    </div>
+</template>
+
+<!-- Sub-segment Template -->
+<template id="sub-segment-template">
+    <div class="sub-segment bg-indigo-50 rounded p-3 border border-indigo-100">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Name</label>
+                <input type="text" class="sub-segment-name w-full px-2 py-1 border border-gray-300 rounded text-sm" placeholder="e.g., Standing Sprint">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Duration (sec)</label>
+                <input type="number" class="sub-segment-duration w-full px-2 py-1 border border-gray-300 rounded text-sm" min="5" step="5" placeholder="30">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Intensity</label>
+                <select class="sub-segment-intensity w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                    <option value="low">Low</option>
+                    <option value="medium">Medium</option>
+                    <option value="high">High</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Position</label>
+                <select class="sub-segment-position w-full px-2 py-1 border border-gray-300 rounded text-sm">
+                    <option value="seated">Seated</option>
+                    <option value="standing">Standing</option>
+                </select>
+            </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-2 mb-2">
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">RPM Range</label>
+                <input type="text" class="sub-segment-bpm w-full px-2 py-1 border border-gray-300 rounded text-sm" placeholder="e.g., 100-120">
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-gray-500 mb-1">Coaching Cues</label>
+                <input type="text" class="sub-segment-description w-full px-2 py-1 border border-gray-300 rounded text-sm" placeholder="Quick instruction...">
+            </div>
+        </div>
+        <div class="flex justify-end gap-2 text-xs">
+            <button type="button" onclick="moveSubSegment(this, -1)" class="text-gray-500 hover:text-gray-700">&uarr; Up</button>
+            <button type="button" onclick="moveSubSegment(this, 1)" class="text-gray-500 hover:text-gray-700">&darr; Down</button>
+            <button type="button" onclick="removeSubSegment(this)" class="text-red-500 hover:text-red-700">&times; Remove</button>
         </div>
     </div>
 </template>
@@ -201,6 +291,19 @@
     let currentPlanId = null;  // Track if editing existing plan
     const container = document.getElementById('segments-container');
     const template = document.getElementById('segment-template');
+    const subSegmentTemplate = document.getElementById('sub-segment-template');
+
+    // Check if we should show Spotify prompt (after AI generation)
+    function checkSpotifyPrompt() {
+        if (sessionStorage.getItem('showSpotifyPrompt') === 'true') {
+            document.getElementById('spotify-prompt').classList.remove('hidden');
+            sessionStorage.removeItem('showSpotifyPrompt');
+        }
+    }
+
+    function dismissSpotifyPrompt() {
+        document.getElementById('spotify-prompt').classList.add('hidden');
+    }
 
     // Load plan from sessionStorage or URL
     function loadPlan() {
@@ -320,7 +423,20 @@
             recalculateSegmentDuration(el);
         });
 
-        container.appendChild(clone);
+        container.appendChild(el);
+
+        // Load sub-segments if present
+        if (segment && segment.sub_segments && segment.sub_segments.length > 0) {
+            const addedEl = container.lastElementChild;
+            const subContainer = addedEl.querySelector('.sub-segments-container');
+            segment.sub_segments.forEach(subSeg => {
+                addSubSegmentElement(subContainer, subSeg);
+            });
+            updateSubSegmentCount(addedEl);
+            // Auto-expand if has sub-segments
+            subContainer.classList.remove('hidden');
+            addedEl.querySelector('.sub-segments-chevron').classList.add('rotate-90');
+        }
     }
 
     function addSegment() {
@@ -387,6 +503,118 @@
         return `${minutes}:${seconds.toString().padStart(2, '0')}`;
     }
 
+    // Sub-segment functions
+    function toggleSubSegments(btn) {
+        const segment = btn.closest('.segment');
+        const container = segment.querySelector('.sub-segments-container');
+        const chevron = segment.querySelector('.sub-segments-chevron');
+        container.classList.toggle('hidden');
+        chevron.classList.toggle('rotate-90');
+    }
+
+    function addSubSegment(btn) {
+        const segment = btn.closest('.segment');
+        const container = segment.querySelector('.sub-segments-container');
+        addSubSegmentElement(container);
+        updateSubSegmentCount(segment);
+        // Auto-expand when adding first sub-segment
+        if (container.classList.contains('hidden')) {
+            container.classList.remove('hidden');
+            segment.querySelector('.sub-segments-chevron').classList.add('rotate-90');
+        }
+        recalculateSegmentDurationFromSubSegments(segment);
+    }
+
+    function addSubSegmentElement(container, subSegment = null) {
+        const clone = subSegmentTemplate.content.cloneNode(true);
+        const el = clone.querySelector('.sub-segment');
+
+        if (subSegment) {
+            el.querySelector('.sub-segment-name').value = subSegment.name || '';
+            el.querySelector('.sub-segment-duration').value = subSegment.duration_seconds || 30;
+            el.querySelector('.sub-segment-intensity').value = subSegment.intensity || 'medium';
+            el.querySelector('.sub-segment-position').value = subSegment.position || 'seated';
+            el.querySelector('.sub-segment-bpm').value = subSegment.suggested_bpm_range || '';
+            el.querySelector('.sub-segment-description').value = subSegment.description || '';
+        } else {
+            // Default values for new sub-segment
+            el.querySelector('.sub-segment-duration').value = 30;
+            el.querySelector('.sub-segment-intensity').value = 'medium';
+            el.querySelector('.sub-segment-position').value = 'seated';
+        }
+
+        // Add change listeners for duration recalculation
+        el.querySelectorAll('input, select').forEach(input => {
+            input.addEventListener('change', () => {
+                const segment = container.closest('.segment');
+                recalculateSegmentDurationFromSubSegments(segment);
+                updateTotalDuration();
+                updateTimeMarkers();
+            });
+        });
+
+        container.appendChild(el);
+    }
+
+    function removeSubSegment(btn) {
+        const subSegment = btn.closest('.sub-segment');
+        const segment = subSegment.closest('.segment');
+        const container = segment.querySelector('.sub-segments-container');
+        subSegment.remove();
+        updateSubSegmentCount(segment);
+        recalculateSegmentDurationFromSubSegments(segment);
+        updateTotalDuration();
+        updateTimeMarkers();
+    }
+
+    function moveSubSegment(btn, direction) {
+        const subSegment = btn.closest('.sub-segment');
+        const container = subSegment.parentElement;
+        const subSegments = Array.from(container.children);
+        const index = subSegments.indexOf(subSegment);
+        const newIndex = index + direction;
+
+        if (newIndex >= 0 && newIndex < subSegments.length) {
+            if (direction === -1) {
+                container.insertBefore(subSegment, subSegments[newIndex]);
+            } else {
+                container.insertBefore(subSegments[newIndex], subSegment);
+            }
+        }
+    }
+
+    function updateSubSegmentCount(segment) {
+        const count = segment.querySelectorAll('.sub-segment').length;
+        segment.querySelector('.sub-segments-count').textContent = `(${count})`;
+    }
+
+    function recalculateSegmentDurationFromSubSegments(segment) {
+        const subSegments = segment.querySelectorAll('.sub-segment');
+        if (subSegments.length === 0) return;
+
+        let totalDuration = 0;
+        subSegments.forEach(sub => {
+            totalDuration += parseInt(sub.querySelector('.sub-segment-duration').value) || 0;
+        });
+
+        segment.querySelector('.segment-duration').value = totalDuration;
+    }
+
+    function collectSubSegments(segment) {
+        const subSegments = [];
+        segment.querySelectorAll('.sub-segment').forEach(sub => {
+            subSegments.push({
+                name: sub.querySelector('.sub-segment-name').value,
+                duration_seconds: parseInt(sub.querySelector('.sub-segment-duration').value) || 0,
+                intensity: sub.querySelector('.sub-segment-intensity').value,
+                position: sub.querySelector('.sub-segment-position').value,
+                suggested_bpm_range: sub.querySelector('.sub-segment-bpm').value,
+                description: sub.querySelector('.sub-segment-description').value,
+            });
+        });
+        return subSegments.length > 0 ? subSegments : null;
+    }
+
     function collectPlanData() {
         const segments = [];
         container.querySelectorAll('.segment').forEach(seg => {
@@ -403,6 +631,7 @@
                 fade_out: seg.querySelector('.segment-fade-out').checked,
                 suggested_bpm_range: seg.querySelector('.segment-bpm').value,
                 description: seg.querySelector('.segment-description').value,
+                sub_segments: collectSubSegments(seg),
             });
         });
 
@@ -654,6 +883,7 @@
 
     // Initialize
     loadPlan();
+    checkSpotifyPrompt();
 </script>
 
 <style>

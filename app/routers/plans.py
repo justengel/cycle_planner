@@ -1,30 +1,11 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends, Request
-from typing import Optional
 
 from app.models.schemas import SavedPlan, SavePlanRequest, LessonPlan
 from app.services.supabase import get_supabase_client, SupabaseClient
+from app.dependencies import get_current_user_id
 
 router = APIRouter()
-
-
-async def get_current_user_id(
-    request: Request,
-    client: SupabaseClient = Depends(get_supabase_client)
-) -> str:
-    """Extract and verify user ID from auth cookie."""
-    access_token = request.cookies.get("access_token")
-    if not access_token:
-        raise HTTPException(status_code=401, detail="Not authenticated")
-
-    try:
-        user_response = client.auth.get_user(access_token)
-        if user_response and user_response.user:
-            return user_response.user.id
-    except Exception:
-        pass
-
-    raise HTTPException(status_code=401, detail="Invalid or expired token")
 
 
 @router.get("")

@@ -26,6 +26,10 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: str = "http://localhost:8000"
 
+    # Rate limiting for AI generation
+    rate_limit_requests: int = 10  # Max AI generations per window
+    rate_limit_window_hours: int = 24  # Time window in hours
+
     class Config:
         env_file = ".env"
         extra = "ignore"
