@@ -76,6 +76,11 @@ async def new_plan_page(request: Request):
     return templates.TemplateResponse("plan_edit.html", {"request": request})
 
 
+@app.get("/plan/from-playlist")
+async def from_playlist_page(request: Request):
+    return templates.TemplateResponse("plan_from_playlist.html", {"request": request})
+
+
 @app.get("/plan/{plan_id}")
 async def view_plan_page(request: Request, plan_id: str):
     return templates.TemplateResponse("plan_view.html", {"request": request, "plan_id": plan_id})

@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+
+{% block title %}Create from Playlist - Cycle Planner{% endblock %}
+
+{% block content %}
+<div class="bg-white rounded-lg shadow-md p-4 sm:p-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-6">
+        <div>
+            <h2 class="text-xl sm:text-2xl font-bold text-gray-800">Create Plan from Playlist</h2>
+            <p class="text-gray-600 text-sm mt-1">Select a Spotify playlist to create a workout plan</p>
+        </div>
+        <a href="/plans" class="text-indigo-600 hover:text-indigo-800 text-sm">
+            &larr; Back to Plans
+        </a>
+    </div>
+
+    <!-- Spotify Not Connected -->
+    <div id="spotify-connect-prompt" class="hidden text-center py-12">
+        <svg class="mx-auto h-16 w-16 text-green-500 mb-4" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+        </svg>
+        <h3 class="text-lg font-semibold text-gray-800 mb-2">Connect to Spotify</h3>
+        <p class="text-gray-600 mb-4">Connect your Spotify account to access your playlists</p>
+        <a href="/api/spotify/login" class="inline-flex items-center gap-2 bg-green-500 text-white px-6 py-3 rounded-full hover:bg-green-600 transition-colors">
+            <svg class="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0zm5.521 17.34c-.24.359-.66.48-1.021.24-2.82-1.74-6.36-2.101-10.561-1.141-.418.122-.779-.179-.899-.539-.12-.421.18-.78.54-.9 4.56-1.021 8.52-.6 11.64 1.32.42.18.479.659.301 1.02zm1.44-3.3c-.301.42-.841.6-1.262.3-3.239-1.98-8.159-2.58-11.939-1.38-.479.12-1.02-.12-1.14-.6-.12-.48.12-1.021.6-1.141C9.6 9.9 15 10.561 18.72 12.84c.361.181.54.78.241 1.2zm.12-3.36C15.24 8.4 8.82 8.16 5.16 9.301c-.6.179-1.2-.181-1.38-.721-.18-.601.18-1.2.72-1.381 4.26-1.26 11.28-1.02 15.721 1.621.539.3.719 1.02.419 1.56-.299.421-1.02.599-1.559.3z"/>
+            </svg>
+            Connect Spotify
+        </a>
+    </div>
+
+    <!-- Loading State -->
+    <div id="playlists-loading" class="text-center py-12">
+        <div class="loader mx-auto mb-4"></div>
+        <p class="text-gray-500">Loading your playlists...</p>
+    </div>
+
+    <!-- Playlists Grid -->
+    <div id="playlists-grid" class="hidden">
+        <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4" id="playlists-container">
+        </div>
+    </div>
+
+    <!-- Empty State -->
+    <div id="playlists-empty" class="hidden text-center py-12">
+        <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+        </svg>
+        <p class="mt-2 text-gray-500">No playlists found</p>
+        <p class="text-sm text-gray-400 mt-1">Create some playlists in Spotify first</p>
+    </div>
+</div>
+
+<!-- Creating Plan Modal -->
+<div id="creating-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6 text-center">
+        <div class="loader mx-auto mb-4"></div>
+        <h3 class="text-lg font-semibold text-gray-900 mb-2">Creating Your Plan</h3>
+        <p class="text-gray-600">Analyzing tracks and building your workout...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function checkAuth() {
+        const data = await getAuthStatus();
+        if (!data || !data.authenticated) {
+            window.location.href = '/login';
+            return false;
+        }
+        return true;
+    }
+
+    async function checkSpotifyConnection() {
+        try {
+            const response = await fetch('/api/spotify/token');
+            const data = await response.json();
+            return data.connected;
+        } catch {
+            return false;
+        }
+    }
+
+    async function loadPlaylists() {
+        if (!await checkAuth()) return;
+
+        const isConnected = await checkSpotifyConnection();
+
+        if (!isConnected) {
+            document.getElementById('playlists-loading').classList.add('hidden');
+            document.getElementById('spotify-connect-prompt').classList.remove('hidden');
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/spotify/playlists');
+
+            if (response.status === 401) {
+                document.getElementById('playlists-loading').classList.add('hidden');
+                document.getElementById('spotify-connect-prompt').classList.remove('hidden');
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error('Failed to load playlists');
+            }
+
+            const data = await response.json();
+
+            document.getElementById('playlists-loading').classList.add('hidden');
+
+            if (!data.playlists || data.playlists.length === 0) {
+                document.getElementById('playlists-empty').classList.remove('hidden');
+                return;
+            }
+
+            const container = document.getElementById('playlists-container');
+            container.innerHTML = data.playlists.map(playlist => `
+                <div class="group cursor-pointer playlist-item" data-playlist-id="${escapeHtml(playlist.id)}" data-playlist-name="${escapeHtml(playlist.name)}">
+                    <div class="aspect-square bg-gray-200 rounded-lg overflow-hidden mb-2 group-hover:ring-2 group-hover:ring-indigo-500 transition-all">
+                        ${playlist.image
+                            ? `<img src="${escapeHtml(playlist.image)}" alt="${escapeHtml(playlist.name)}" class="w-full h-full object-cover">`
+                            : `<div class="w-full h-full flex items-center justify-center">
+                                <svg class="w-12 h-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                                </svg>
+                            </div>`
+                        }
+                    </div>
+                    <h3 class="font-medium text-gray-800 text-sm truncate group-hover:text-indigo-600">${escapeHtml(playlist.name)}</h3>
+                    <p class="text-xs text-gray-500">${playlist.track_count} tracks</p>
+                </div>
+            `).join('');
+
+            // Attach event listeners safely
+            document.querySelectorAll('.playlist-item').forEach(el => {
+                el.addEventListener('click', () => {
+                    selectPlaylist(el.dataset.playlistId, el.dataset.playlistName);
+                });
+            });
+
+            document.getElementById('playlists-grid').classList.remove('hidden');
+
+        } catch (error) {
+            console.error('Error loading playlists:', error);
+            document.getElementById('playlists-loading').classList.add('hidden');
+            showToast('Failed to load playlists: ' + error.message, 'error');
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    async function selectPlaylist(playlistId, playlistName) {
+        const modal = document.getElementById('creating-modal');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+
+        try {
+            const response = await fetch('/api/from-playlist', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    playlist_id: playlistId,
+                    playlist_name: playlistName,
+                }),
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                throw new Error(error.detail || 'Failed to create plan');
+            }
+
+            const data = await response.json();
+
+            if (data.id) {
+                window.location.href = `/plan/${data.id}`;
+            } else {
+                throw new Error('Plan created but no ID returned');
+            }
+
+        } catch (error) {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            showToast('Error: ' + error.message, 'error');
+        }
+    }
+
+    loadPlaylists();
+</script>
+{% endblock %}

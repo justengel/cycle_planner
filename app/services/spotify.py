@@ -15,6 +15,7 @@ SCOPES = [
     "user-read-private",
     "user-read-playback-state",
     "user-modify-playback-state",
+    "playlist-read-private",
     "playlist-modify-public",
     "playlist-modify-private",
 ]
@@ -138,6 +139,33 @@ async def get_audio_features(track_id: str, access_token: str) -> dict | None:
         return None
 
 
+async def get_audio_features_batch(track_ids: list[str], access_token: str) -> dict[str, dict]:
+    """Get audio features for multiple tracks in one request (max 100)."""
+    if not track_ids:
+        return {}
+
+    results = {}
+    async with httpx.AsyncClient() as client:
+        # Process in batches of 100 (Spotify limit)
+        for i in range(0, len(track_ids), 100):
+            batch = track_ids[i:i + 100]
+            try:
+                response = await client.get(
+                    f"{SPOTIFY_API_URL}/audio-features",
+                    headers={"Authorization": f"Bearer {access_token}"},
+                    params={"ids": ",".join(batch)},
+                )
+                if response.status_code == 200:
+                    data = response.json()
+                    for feature in data.get("audio_features", []):
+                        if feature and feature.get("id"):
+                            results[feature["id"]] = feature
+            except Exception as e:
+                print(f"[spotify] Batch audio features failed: {e}")
+
+    return results
+
+
 async def create_playlist(
     access_token: str,
     name: str,
@@ -182,3 +210,68 @@ async def add_tracks_to_playlist(
         )
         response.raise_for_status()
         return response.json()
+
+
+async def get_user_playlists(access_token: str, limit: int = 50) -> list[dict]:
+    """Get current user's playlists."""
+    playlists = []
+    async with httpx.AsyncClient() as client:
+        url = f"{SPOTIFY_API_URL}/me/playlists"
+        params = {"limit": limit}
+
+        while url:
+            response = await client.get(
+                url,
+                headers={"Authorization": f"Bearer {access_token}"},
+                params=params if "api.spotify.com" in url else None,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            for item in data.get("items", []):
+                images = item.get("images") or []
+                playlists.append({
+                    "id": item["id"],
+                    "name": item["name"],
+                    "image": images[0]["url"] if images else None,
+                    "track_count": item["tracks"]["total"],
+                    "owner": item["owner"]["display_name"],
+                })
+
+            url = data.get("next")
+            params = None  # Next URL includes params
+
+    return playlists
+
+
+async def get_playlist_tracks(access_token: str, playlist_id: str) -> list[dict]:
+    """Get all tracks from a playlist."""
+    tracks = []
+    async with httpx.AsyncClient() as client:
+        url = f"{SPOTIFY_API_URL}/playlists/{playlist_id}/tracks"
+        params = {"limit": 100}
+
+        while url:
+            response = await client.get(
+                url,
+                headers={"Authorization": f"Bearer {access_token}"},
+                params=params if "api.spotify.com" in url else None,
+            )
+            response.raise_for_status()
+            data = response.json()
+
+            for item in data.get("items", []):
+                track = item.get("track")
+                if track and track.get("id"):  # Skip local files
+                    tracks.append({
+                        "id": track["id"],
+                        "uri": track["uri"],
+                        "name": track["name"],
+                        "artist": track["artists"][0]["name"] if track.get("artists") else "",
+                        "duration_ms": track.get("duration_ms", 0),
+                    })
+
+            url = data.get("next")
+            params = None
+
+    return tracks

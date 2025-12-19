@@ -1,10 +1,12 @@
 import uuid
 from fastapi import APIRouter, HTTPException, Depends, Request
+from pydantic import BaseModel, Field
 
 from app.models.schemas import GenerateRequest, GenerateResponse, LessonPlan
 from app.services.ai import generate_lesson_plan
 from app.services.supabase import get_supabase_client, SupabaseClient
 from app.services.spotify import search_tracks, get_audio_features
+from app.services.playlist_to_plan import playlist_to_plan
 from app.services.rate_limiter import check_rate_limit, record_request, get_remaining_requests
 from app.dependencies import get_current_user_id
 
@@ -140,3 +142,48 @@ async def get_rate_limit_status(
 ):
     """Get current rate limit status for the user."""
     return get_remaining_requests(user_id)
+
+
+class FromPlaylistRequest(BaseModel):
+    playlist_id: str = Field(..., min_length=1, max_length=100)
+    playlist_name: str = Field(..., min_length=1, max_length=200)
+
+
+@router.post("/from-playlist", response_model=GenerateResponseWithId)
+async def generate_from_playlist(
+    request: Request,
+    body: FromPlaylistRequest,
+    user_id: str = Depends(get_current_user_id),
+    client: SupabaseClient = Depends(get_supabase_client),
+):
+    """Create a lesson plan from a Spotify playlist."""
+    spotify_token = request.cookies.get("spotify_access_token")
+
+    if not spotify_token:
+        raise HTTPException(status_code=401, detail="Not connected to Spotify")
+
+    try:
+        # Convert playlist to plan
+        plan = await playlist_to_plan(
+            access_token=spotify_token,
+            playlist_id=body.playlist_id,
+            playlist_name=body.playlist_name,
+        )
+
+        # Auto-save the plan
+        plan_id = str(uuid.uuid4())
+        data = {
+            "id": plan_id,
+            "user_id": user_id,
+            "theme": plan.theme,
+            "duration_minutes": plan.total_duration_minutes,
+            "plan_json": plan.model_dump(),
+        }
+        client.table("lesson_plans").insert(data).execute()
+
+        return GenerateResponseWithId(plan=plan, id=plan_id)
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to create plan from playlist: {str(e)}")

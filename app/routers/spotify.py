@@ -227,6 +227,37 @@ async def spotify_logout(response: Response):
     return {"message": "Disconnected from Spotify"}
 
 
+@router.get("/playlists")
+async def get_user_playlists(request: Request, response: Response):
+    """Get current user's Spotify playlists."""
+    access_token = request.cookies.get("spotify_access_token")
+    refresh_token = request.cookies.get("spotify_refresh_token")
+
+    if not access_token and not refresh_token:
+        raise HTTPException(status_code=401, detail="Not connected to Spotify")
+
+    # Refresh token if needed
+    if not access_token and refresh_token:
+        try:
+            tokens = await spotify_service.refresh_access_token(refresh_token)
+            access_token = tokens["access_token"]
+            response.set_cookie(
+                key="spotify_access_token",
+                value=access_token,
+                httponly=True,
+                max_age=tokens.get("expires_in", 3600),
+                samesite="lax"
+            )
+        except Exception:
+            raise HTTPException(status_code=401, detail="Failed to refresh token")
+
+    try:
+        playlists = await spotify_service.get_user_playlists(access_token)
+        return {"playlists": playlists}
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Failed to get playlists: {str(e)}")
+
+
 class CreatePlaylistRequest(BaseModel):
     plan_id: str
     public: bool = False
