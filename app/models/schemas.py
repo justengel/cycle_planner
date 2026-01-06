@@ -40,6 +40,7 @@ class GenerateRequest(BaseModel):
     """Request to generate a new lesson plan."""
     theme: str = Field(..., description="Theme or description for the class")
     duration_minutes: int = Field(default=50, ge=15, le=120, description="Class duration in minutes")
+    include_subsegments: bool = Field(default=True, description="Whether AI should create sub-segments for varied activities")
 
 
 class GenerateResponse(BaseModel):

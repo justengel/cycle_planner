@@ -99,6 +99,7 @@ async def generate(
         plan = await generate_lesson_plan(
             theme=request.theme,
             duration_minutes=request.duration_minutes,
+            include_subsegments=request.include_subsegments,
         )
 
         # Calculate total duration from segments

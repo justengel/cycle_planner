@@ -7,7 +7,7 @@ from app.models.schemas import LessonPlan, Segment
 
 logger = logging.getLogger(__name__)
 
-SYSTEM_PROMPT = """You are an expert cycle/spin class instructor helping to create lesson plans.
+SYSTEM_PROMPT_BASE = """You are an expert cycle/spin class instructor helping to create lesson plans.
 
 When given a theme and duration, create a structured workout plan with varied segments including:
 - Warm-up (always start with this, 3-5 minutes, LOW intensity)
@@ -41,6 +41,17 @@ SEGMENT DURATION - MUST FIT WITHIN SONG LENGTH:
 - High-intensity segments work best at 2-4 minutes
 - For longer activities, split into multiple segments with song changes
 
+For each segment, provide:
+- A descriptive name
+- Duration in seconds
+- Intensity level (low, medium, high) - this determines the song energy
+- Position (seated or standing)
+- Coaching cues and motivational instructions
+- Suggested RPM range for pedaling cadence (e.g., "80-100 RPM")
+- A song suggestion that MATCHES THE INTENSITY (format: "Song Name - Artist")"""
+
+SUBSEGMENTS_PROMPT = """
+
 SUB-SEGMENTS - USE FOR VARIED ACTIVITIES WITHIN ONE SONG:
 Sub-segments break a single song into multiple activities. Use them when:
 - Tabata intervals: 20 sec sprint / 10 sec recovery cycles (use sub-segments for each interval)
@@ -56,16 +67,13 @@ When using sub-segments:
 - The segment's duration_seconds should equal the sum of all sub-segment durations
 - Each sub-segment has its own name, duration, intensity, position, description, and RPM range
 - The parent segment's intensity/position reflect the overall character
+- Include sub_segments array for varied activities within the song"""
 
-For each segment, provide:
-- A descriptive name
-- Duration in seconds
-- Intensity level (low, medium, high) - this determines the song energy
-- Position (seated or standing)
-- Coaching cues and motivational instructions
-- Suggested RPM range for pedaling cadence (e.g., "80-100 RPM")
-- A song suggestion that MATCHES THE INTENSITY (format: "Song Name - Artist")
-- Optional: sub_segments array for varied activities within the song
+NO_SUBSEGMENTS_PROMPT = """
+
+IMPORTANT: Do NOT include sub-segments in this plan. Each segment should be a single, consistent activity with one song. Set sub_segments to null for all segments."""
+
+JSON_SCHEMA_WITH_SUBSEGMENTS = """
 
 IMPORTANT: Respond ONLY with valid JSON matching this exact structure:
 {
@@ -94,8 +102,36 @@ IMPORTANT: Respond ONLY with valid JSON matching this exact structure:
   "notes": "string or null"
 }"""
 
+JSON_SCHEMA_NO_SUBSEGMENTS = """
 
-async def generate_lesson_plan(theme: str, duration_minutes: int) -> LessonPlan:
+IMPORTANT: Respond ONLY with valid JSON matching this exact structure:
+{
+  "theme": "string",
+  "segments": [
+    {
+      "name": "string",
+      "duration_seconds": number,
+      "intensity": "low|medium|high",
+      "position": "seated|standing",
+      "description": "string",
+      "suggested_bpm_range": "string",
+      "song": "string",
+      "sub_segments": null
+    }
+  ],
+  "notes": "string or null"
+}"""
+
+
+def build_system_prompt(include_subsegments: bool) -> str:
+    """Build the system prompt based on whether sub-segments are included."""
+    if include_subsegments:
+        return SYSTEM_PROMPT_BASE + SUBSEGMENTS_PROMPT + JSON_SCHEMA_WITH_SUBSEGMENTS
+    else:
+        return SYSTEM_PROMPT_BASE + NO_SUBSEGMENTS_PROMPT + JSON_SCHEMA_NO_SUBSEGMENTS
+
+
+async def generate_lesson_plan(theme: str, duration_minutes: int, include_subsegments: bool = True) -> LessonPlan:
     """Generate a cycle class lesson plan using Claude."""
     settings = get_settings()
     client = Anthropic(api_key=settings.anthropic_api_key)
@@ -111,7 +147,8 @@ Remember to:
 
 Respond with ONLY the JSON, no additional text."""
 
-    logger.info(f"Generating lesson plan: theme='{theme}', duration={duration_minutes}min")
+    system_prompt = build_system_prompt(include_subsegments)
+    logger.info(f"Generating lesson plan: theme='{theme}', duration={duration_minutes}min, subsegments={include_subsegments}")
 
     message = client.messages.create(
         model="claude-sonnet-4-20250514",
@@ -119,7 +156,7 @@ Respond with ONLY the JSON, no additional text."""
         messages=[
             {"role": "user", "content": user_prompt}
         ],
-        system=SYSTEM_PROMPT,
+        system=system_prompt,
     )
 
     # Extract the text content

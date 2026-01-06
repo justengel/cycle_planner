@@ -64,6 +64,19 @@
                 </div>
             </div>
 
+            <div class="flex items-center">
+                <input
+                    type="checkbox"
+                    id="include-subsegments"
+                    name="include_subsegments"
+                    checked
+                    class="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
+                >
+                <label for="include-subsegments" class="ml-2 block text-sm text-gray-700">
+                    Include sub-segments (intervals, position changes within songs)
+                </label>
+            </div>
+
             <button
                 type="submit"
                 id="generate-btn"
@@ -136,6 +149,7 @@
 
         const theme = document.getElementById('theme').value;
         const duration = parseInt(durationSlider.value);
+        const includeSubsegments = document.getElementById('include-subsegments').checked;
 
         // Show loading state
         loadingDiv.classList.remove('hidden');
@@ -151,7 +165,8 @@
                 },
                 body: JSON.stringify({
                     theme: theme,
-                    duration_minutes: duration
+                    duration_minutes: duration,
+                    include_subsegments: includeSubsegments
                 })
             });
 
